@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { usuariosAPI } from "../services/apiClient";
 
 export function Register() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -19,24 +22,59 @@ export function Register() {
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
+    setError(""); // Limpiar error al escribir
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Las contraseñas no coinciden");
+      setError("Las contraseñas no coinciden");
       return;
     }
 
     if (!formData.acceptTerms) {
-      alert("Debes aceptar los términos y condiciones");
+      setError("Debes aceptar los términos y condiciones");
       return;
     }
 
-    console.log("Registro:", formData);
-    alert("¡Cuenta creada exitosamente!");
-    navigate("/");
+    if (formData.password.length < 6) {
+      setError("La contraseña debe tener mínimo 6 caracteres");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Verificar si el email ya existe
+      const usuarioExistente = await usuariosAPI.getByEmail(formData.email);
+      if (usuarioExistente) {
+        setError("Este correo electrónico ya está registrado");
+        setLoading(false);
+        return;
+      }
+
+      // Crear el usuario
+      const nuevoUsuario = {
+        nombre: formData.firstName,
+        apellidos: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        fechaNac: formData.birthDate,
+      };
+
+      const usuario = await usuariosAPI.create(nuevoUsuario);
+      console.log("Usuario creado:", usuario);
+      
+      alert("¡Cuenta creada exitosamente!");
+      navigate("/");
+    } catch (err) {
+      console.error("Error al registrar:", err);
+      setError("Error al crear la cuenta. Por favor, intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,6 +82,12 @@ export function Register() {
       <div className="max-w-md mx-auto">
         <div className="border-2 border-gray-200 p-8">
           <h1 className="text-3xl mb-6 text-center">Crear Cuenta</h1>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -54,7 +98,8 @@ export function Register() {
                 value={formData.firstName}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff]"
+                disabled={loading}
+                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff] disabled:bg-gray-100"
                 placeholder="Tu nombre"
               />
             </div>
@@ -67,7 +112,8 @@ export function Register() {
                 value={formData.lastName}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff]"
+                disabled={loading}
+                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff] disabled:bg-gray-100"
                 placeholder="Tus apellidos"
               />
             </div>
@@ -80,7 +126,8 @@ export function Register() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff]"
+                disabled={loading}
+                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff] disabled:bg-gray-100"
                 placeholder="tu@email.com"
               />
             </div>
@@ -93,7 +140,8 @@ export function Register() {
                 value={formData.birthDate}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff]"
+                disabled={loading}
+                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff] disabled:bg-gray-100"
               />
             </div>
 
@@ -106,7 +154,8 @@ export function Register() {
                 onChange={handleChange}
                 required
                 minLength={6}
-                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff]"
+                disabled={loading}
+                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff] disabled:bg-gray-100"
                 placeholder="Mínimo 6 caracteres"
               />
             </div>
@@ -120,7 +169,8 @@ export function Register() {
                 onChange={handleChange}
                 required
                 minLength={6}
-                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff]"
+                disabled={loading}
+                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff] disabled:bg-gray-100"
                 placeholder="Repite tu contraseña"
               />
             </div>
@@ -132,7 +182,8 @@ export function Register() {
                 checked={formData.acceptTerms}
                 onChange={handleChange}
                 required
-                className="mt-1 w-5 h-5 border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#007bff]"
+                disabled={loading}
+                className="mt-1 w-5 h-5 border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#007bff] disabled:bg-gray-100"
               />
               <label className="text-sm text-gray-700">
                 Acepto los{" "}
@@ -148,9 +199,10 @@ export function Register() {
 
             <button
               type="submit"
-              className="w-full bg-[#007bff] text-white py-3 hover:bg-[#0056b3] transition-colors"
+              disabled={loading}
+              className="w-full bg-[#007bff] text-white py-3 hover:bg-[#0056b3] disabled:bg-gray-400 transition-colors"
             >
-              Crear Cuenta
+              {loading ? "Creando cuenta..." : "Crear Cuenta"}
             </button>
 
             <p className="text-center text-gray-600 text-sm">
@@ -158,7 +210,8 @@ export function Register() {
               <button
                 type="button"
                 onClick={() => navigate("/")}
-                className="text-[#007bff] hover:underline"
+                disabled={loading}
+                className="text-[#007bff] hover:underline disabled:opacity-50"
               >
                 Inicia sesión aquí
               </button>

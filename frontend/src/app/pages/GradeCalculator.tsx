@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { titulacionesAPI, Titulacion } from "../services/apiClient";
 
 const fields = {
   ciencias: {
@@ -41,6 +42,9 @@ export function GradeCalculator() {
   const [generalPhaseGrade, setGeneralPhaseGrade] = useState("");
   const [specificSubjects, setSpecificSubjects] = useState<Record<string, { grade: string; weight: string }>>({});
   const [calculatedGrade, setCalculatedGrade] = useState<number | null>(null);
+  const [recommendedTitulaciones, setRecommendedTitulaciones] = useState<Titulacion[]>([]);
+  const [loadingTitulaciones, setLoadingTitulaciones] = useState(false);
+  const [error, setError] = useState<string>("");
 
   const handleSubjectChange = (subject: string, field: "grade" | "weight", value: string) => {
     setSpecificSubjects({
@@ -52,10 +56,10 @@ export function GradeCalculator() {
     });
   };
 
-  const calculateGrade = () => {
+  const calculateGrade = async () => {
     const general = parseFloat(generalPhaseGrade);
     if (isNaN(general) || general < 0 || general > 10) {
-      alert("Por favor, introduce una nota válida para la fase general (0-10)");
+      setError("Por favor, introduce una nota válida para la fase general (0-10)");
       return;
     }
 
@@ -70,12 +74,35 @@ export function GradeCalculator() {
 
     const finalGrade = Math.min(general + specificPoints, 14);
     setCalculatedGrade(parseFloat(finalGrade.toFixed(2)));
+    setError("");
+
+    // Cargar titulaciones recomendadas
+    await loadRecommendedTitulaciones(finalGrade);
+  };
+
+  const loadRecommendedTitulaciones = async (nota: number) => {
+    try {
+      setLoadingTitulaciones(true);
+      const data = await titulacionesAPI.getRecommended(nota);
+      setRecommendedTitulaciones(data);
+    } catch (err) {
+      console.error("Error al cargar titulaciones recomendadas:", err);
+      setError("No se pudieron cargar las titulaciones recomendadas");
+    } finally {
+      setLoadingTitulaciones(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-white py-20 px-6">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl mb-6">Calculadora de Nota PAU</h1>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700">
+            {error}
+          </div>
+        )}
 
         <div className="bg-blue-50 border border-[#007bff] p-6 mb-8">
           <h2 className="text-xl mb-3">¿Cómo funciona?</h2>
@@ -168,20 +195,54 @@ export function GradeCalculator() {
           </button>
 
           {calculatedGrade !== null && (
-            <div className="border-2 border-[#007bff] bg-blue-50 p-8 text-center">
-              <h2 className="text-2xl mb-4">Tu Nota de Acceso a la Universidad</h2>
-              <div className="text-6xl font-bold text-[#007bff] mb-4">
-                {calculatedGrade}
+            <div className="space-y-8">
+              <div className="border-2 border-[#007bff] bg-blue-50 p-8 text-center">
+                <h2 className="text-2xl mb-4">Tu Nota de Acceso a la Universidad</h2>
+                <div className="text-6xl font-bold text-[#007bff] mb-4">
+                  {calculatedGrade}
+                </div>
+                <p className="text-gray-700">
+                  {calculatedGrade >= 12
+                    ? "¡Excelente nota! Tienes muchas opciones de grados universitarios."
+                    : calculatedGrade >= 9
+                    ? "Buena nota. Podrás acceder a la mayoría de grados universitarios."
+                    : calculatedGrade >= 7
+                    ? "Nota correcta. Consulta las notas de corte de tus grados de interés."
+                    : "Considera mejorar tu nota con la fase específica para más opciones."}
+                </p>
               </div>
-              <p className="text-gray-700">
-                {calculatedGrade >= 12
-                  ? "¡Excelente nota! Tienes muchas opciones de grados universitarios."
-                  : calculatedGrade >= 9
-                  ? "Buena nota. Podrás acceder a la mayoría de grados universitarios."
-                  : calculatedGrade >= 7
-                  ? "Nota correcta. Consulta las notas de corte de tus grados de interés."
-                  : "Considera mejorar tu nota con la fase específica para más opciones."}
-              </p>
+
+              {loadingTitulaciones ? (
+                <div className="text-center p-8 border-2 border-gray-200">
+                  <p className="text-gray-600">Cargando titulaciones recomendadas...</p>
+                </div>
+              ) : (
+                <div className="border-2 border-gray-200 p-6">
+                  <h2 className="text-2xl mb-6">Titulaciones Accesibles</h2>
+                  {recommendedTitulaciones.length === 0 ? (
+                    <p className="text-gray-600 text-center py-8">
+                      No hay titulaciones accesibles con tu nota actual.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {recommendedTitulaciones.map((titulacion) => (
+                        <div
+                          key={titulacion.idTitulacion}
+                          className="border border-gray-200 p-4 hover:border-[#007bff] transition-colors"
+                        >
+                          <h3 className="font-semibold mb-2">{titulacion.nombre}</h3>
+                          <div className="text-sm text-gray-600">
+                            <p>Nota de corte: <span className="font-bold text-[#007bff]">{titulacion.notaCorte}</span></p>
+                            {titulacion.ramaNombre && (
+                              <p>Rama: {titulacion.ramaNombre}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

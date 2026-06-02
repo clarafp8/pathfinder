@@ -15,7 +15,7 @@ import com.proyecto.proyecto.repositorios.TitulacionRepository;
 
 @RestController
 @RequestMapping("/api/titulaciones")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"}) // Vite + React
 public class TitulacionControlador {
 	@Autowired
     private TitulacionRepository titulacionRepository;

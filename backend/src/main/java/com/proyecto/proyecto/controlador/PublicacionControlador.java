@@ -19,7 +19,7 @@ import com.proyecto.proyecto.repositorios.PublicacionRepository;
 
 @RestController
 @RequestMapping("/api/publicaciones")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"}) // Vite + React
 public class PublicacionControlador {
 	@Autowired
     private PublicacionRepository publicacionRepository;

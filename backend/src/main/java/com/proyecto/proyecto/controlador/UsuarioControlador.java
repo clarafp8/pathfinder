@@ -17,7 +17,7 @@ import com.proyecto.proyecto.repositorios.UsuarioRepository;
 
 @RestController
 @RequestMapping("/api/usuarios")
-@CrossOrigin(origins = "http://localhost:3000") // React
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"}) // Vite + React
 public class UsuarioControlador {
 
 	private final UsuarioRepository usuarioRepository;
