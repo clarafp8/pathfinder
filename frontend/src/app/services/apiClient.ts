@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:9093/api";
+const API_BASE_URL = "/api";
 
 // Tipos de datos
 export interface Usuario {
