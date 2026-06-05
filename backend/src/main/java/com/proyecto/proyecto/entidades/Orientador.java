@@ -4,12 +4,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
-import lombok.Data;
 
 @Entity
 @Table(name = "Orientador")
 @PrimaryKeyJoinColumn(name = "id")
-@Data
 public class Orientador extends Usuario {
     
     private String especialidad;

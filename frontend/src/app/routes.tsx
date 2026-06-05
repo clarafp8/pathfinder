@@ -6,6 +6,7 @@ import { GradeCalculator } from "./pages/GradeCalculator";
 import { Forum } from "./pages/Forum";
 import { Discover } from "./pages/Discover";
 import { Register } from "./pages/Register";
+import { Profile } from "./pages/Profile";
 import { NotFound } from "./pages/NotFound";
 
 export const router = createBrowserRouter([
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
       { path: "foro", Component: Forum },
       { path: "descubrir", Component: Discover },
       { path: "registro", Component: Register },
+      { path: "perfil", Component: Profile },
       { path: "*", Component: NotFound },
     ],
   },

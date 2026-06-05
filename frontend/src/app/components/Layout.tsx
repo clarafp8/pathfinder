@@ -1,16 +1,37 @@
-import { Outlet, Link } from "react-router";
-import { User } from "lucide-react";
-import { useState } from "react";
+import { Outlet, Link, useNavigate } from "react-router";
+import { User, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
+import Login from "./Login"; // Asegúrate de que la ruta a tu componente Login sea correcta
 
 export function Layout() {
+  const navigate = useNavigate();
   const [showLoginDropdown, setShowLoginDropdown] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  
+  // Estado reactivo que controla si hay un usuario logueado en la app
+  const [usuarioActivo, setUsuarioActivo] = useState<any>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Login attempt:", { username, password });
+  // Al cargar la web, miramos si ya inició sesión antes
+  useEffect(() => {
+    const usuarioGuardado = localStorage.getItem("usuario");
+    if (usuarioGuardado) {
+      try {
+        setUsuarioActivo(JSON.parse(usuarioGuardado));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
+  // Función que se ejecutará mágicamente cuando el hijo (Login) tenga éxito
+  const handleLoginSuccess = (usuario: any) => {
+    setUsuarioActivo(usuario);
     setShowLoginDropdown(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("usuario");
+    setUsuarioActivo(null);
+    navigate("/");
   };
 
   return (
@@ -18,13 +39,14 @@ export function Layout() {
       <nav className="bg-white border-b border-gray-200 px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <img 
-            src="/Pathfinder_logo_blue.png" 
-            alt="Logo PathFinder" 
-            className="w-8 h-8 object-contain" 
-          />
-          <span className="font-semibold text-xl">PathFinder</span>
+            <img 
+              src="/logo_Black.png" 
+              alt="Logo PathFinder" 
+              className="w-8 h-8 object-contain" 
+            />
+            <span className="font-semibold text-xl">PathFinder</span>
           </Link>
+          
           <div className="flex items-center gap-8">
             <Link to="/cuestionario" className="text-gray-700 hover:text-[#007bff] transition-colors">
               Cuestionario
@@ -40,49 +62,52 @@ export function Layout() {
             </Link>
 
             <div className="relative">
-              <button
-                onClick={() => setShowLoginDropdown(!showLoginDropdown)}
-                className="flex items-center gap-2 text-gray-700 hover:text-[#007bff] transition-colors"
-              >
-                <User className="w-5 h-5" />
-                Inicio de sesión
-              </button>
-
-              {showLoginDropdown && (
-                <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 shadow-lg p-4 z-50">
-                  <form onSubmit={handleLogin} className="space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Nombre de usuario"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff]"
-                    />
-                    <input
-                      type="password"
-                      placeholder="Contraseña"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff]"
-                    />
-                    <button
-                      type="submit"
-                      className="w-full bg-[#007bff] text-white py-2 hover:bg-[#0056b3] transition-colors"
-                    >
-                      Iniciar sesión
-                    </button>
-                    <p className="text-sm text-center text-gray-600">
-                      ¿Todavía no tienes cuenta?{" "}
-                      <Link
-                        to="/registro"
-                        className="text-[#007bff] hover:underline"
-                        onClick={() => setShowLoginDropdown(false)}
-                      >
-                        Regístrate aquí
-                      </Link>
-                    </p>
-                  </form>
+              {usuarioActivo ? (
+                // Si el usuario está logueado, mostramos su nombre y botón de salir
+                <div className="flex items-center gap-4">
+                  <Link to="/perfil" className="text-gray-700 font-medium hover:text-[#007bff] flex items-center gap-1">
+                    <User className="w-4 h-4" />
+                    Hola, {usuarioActivo.nombre}
+                  </Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="text-gray-500 hover:text-red-600 transition-colors"
+                    title="Cerrar sesión"
+                  >
+                    <LogOut className="w-5 h-5" />
+                  </button>
                 </div>
+              ) : (
+                // Si no está logueado, mostramos el botón de inicio de sesión de siempre
+                <>
+                  <button
+                    onClick={() => setShowLoginDropdown(!showLoginDropdown)}
+                    className="flex items-center gap-2 text-gray-700 hover:text-[#007bff] transition-colors"
+                  >
+                    <User className="w-5 h-5" />
+                    Inicio de sesión
+                  </button>
+
+                  {showLoginDropdown && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 shadow-lg p-4 z-50">
+                      {/* Le pasamos la función al componente hijo */}
+                      <Login 
+                        onClose={() => setShowLoginDropdown(false)} 
+                        onLoginSuccess={handleLoginSuccess} 
+                      />
+                      <p className="text-sm text-center text-gray-600 mt-3 border-t pt-2">
+                        ¿Todavía no tienes cuenta?{" "}
+                        <Link
+                          to="/registro"
+                          className="text-[#007bff] hover:underline"
+                          onClick={() => setShowLoginDropdown(false)}
+                        >
+                          Regístrate aquí
+                        </Link>
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

@@ -1,6 +1,5 @@
 const API_BASE_URL = "/api";
 
-// Tipos de datos
 export interface Usuario {
   id?: number;
   nombre: string;
@@ -14,9 +13,15 @@ export interface Usuario {
 export interface Publicacion {
   idPublicacion?: number;
   contenido: string;
-  usuarioId: number;
+  usuario?: {
+    id: number;
+    nombre?: string;
+    apellidos?: string;
+    email?: string;
+  };
   padreIdPublicacion?: number;
   fechaCreacion?: string;
+  likes?: number;
 }
 
 export interface Titulacion {
@@ -27,9 +32,7 @@ export interface Titulacion {
   ramaNombre?: string;
 }
 
-// ============ USUARIOS ============
 export const usuariosAPI = {
-  // Obtener todos los usuarios
   getAll: async (): Promise<Usuario[]> => {
     try {
       const response = await fetch(`${API_BASE_URL}/usuarios/datos`);
@@ -41,7 +44,6 @@ export const usuariosAPI = {
     }
   },
 
-  // Obtener usuario por correo
   getByEmail: async (correo: string): Promise<Usuario | null> => {
     try {
       const response = await fetch(`${API_BASE_URL}/usuarios/correo/${correo}`);
@@ -53,7 +55,6 @@ export const usuariosAPI = {
     }
   },
 
-  // Crear nuevo usuario
   create: async (usuario: Usuario): Promise<Usuario> => {
     try {
       const response = await fetch(`${API_BASE_URL}/usuarios`, {
@@ -71,7 +72,6 @@ export const usuariosAPI = {
     }
   },
 
-  // Actualizar usuario
   update: async (id: number, usuario: Usuario): Promise<Usuario> => {
     try {
       const response = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
@@ -90,9 +90,7 @@ export const usuariosAPI = {
   },
 };
 
-// ============ PUBLICACIONES ============
 export const publicacionesAPI = {
-  // Obtener temas principales (sin padre)
   getMainTopics: async (): Promise<Publicacion[]> => {
     try {
       const response = await fetch(`${API_BASE_URL}/publicaciones`);
@@ -104,7 +102,6 @@ export const publicacionesAPI = {
     }
   },
 
-  // Obtener respuestas a una publicación
   getReplies: async (publicacionId: number): Promise<Publicacion[]> => {
     try {
       const response = await fetch(`${API_BASE_URL}/publicaciones/${publicacionId}/respuestas`);
@@ -116,7 +113,6 @@ export const publicacionesAPI = {
     }
   },
 
-  // Crear nueva publicación
   create: async (publicacion: Publicacion): Promise<Publicacion> => {
     try {
       const response = await fetch(`${API_BASE_URL}/publicaciones`, {
@@ -134,7 +130,6 @@ export const publicacionesAPI = {
     }
   },
 
-  // Eliminar publicación
   delete: async (publicacionId: number): Promise<void> => {
     try {
       const response = await fetch(`${API_BASE_URL}/publicaciones/${publicacionId}`, {
@@ -148,9 +143,7 @@ export const publicacionesAPI = {
   },
 };
 
-// ============ TITULACIONES ============
 export const titulacionesAPI = {
-  // Obtener todas las titulaciones
   getAll: async (): Promise<Titulacion[]> => {
     try {
       const response = await fetch(`${API_BASE_URL}/titulaciones`);
@@ -162,7 +155,6 @@ export const titulacionesAPI = {
     }
   },
 
-  // Obtener titulaciones recomendadas por nota
   getRecommended: async (nota: number): Promise<Titulacion[]> => {
     try {
       const response = await fetch(`${API_BASE_URL}/titulaciones/recomendadas?nota=${nota}`);
@@ -174,7 +166,6 @@ export const titulacionesAPI = {
     }
   },
 
-  // Obtener titulaciones por rama ID
   getByRama: async (idRama: number): Promise<Titulacion[]> => {
     try {
       const response = await fetch(`${API_BASE_URL}/titulaciones/rama/${idRama}`);
@@ -186,7 +177,6 @@ export const titulacionesAPI = {
     }
   },
 
-  // Obtener titulaciones por nombre de rama
   getByRamaNombre: async (nombreRama: string): Promise<Titulacion[]> => {
     try {
       const response = await fetch(`${API_BASE_URL}/titulaciones/por-rama?nombre=${nombreRama}`);
