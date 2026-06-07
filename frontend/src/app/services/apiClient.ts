@@ -23,13 +23,30 @@ export interface Publicacion {
   fechaCreacion?: string;
   likes?: number;
 }
+export interface Rama {
+  idRama: number;
+  nombre: string;
+}
+
+export interface Centro {
+  idCentro: number;
+  nombre: string;
+  provincia: string;
+  latitud?: number | null;
+  longitud?: number | null;
+  codigoPostal?: string | null;
+  esUniversity?: boolean | null;
+}
 
 export interface Titulacion {
   idTitulacion?: number;
   nombre: string;
-  notaCorte: number;
+  tipo?: string; 
+  notaCorte: number;     
   ramaIdRama?: number;
-  ramaNombre?: string;
+  ramaNombre?: string; 
+  rama?: Rama;        
+  centros?: Centro[];  
 }
 
 export const usuariosAPI = {

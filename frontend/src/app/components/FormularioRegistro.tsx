@@ -1,19 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { usuariosAPI, Usuario } from "../services/apiClient";
+import { provinciasList } from "../services/provincias";
 import { useNavigate } from "react-router";
+import Swal from "sweetalert2";
 
 interface Props {
   onSuccess?: (u: Usuario) => void;
 }
 
-interface ProvinciaAPI {
-  NOM_PROV: string;
-  CODPROV: string;
-}
-
 export default function Registro({ onSuccess }: Props) {
   const navigate = useNavigate();
-  const [provincias, setProvincias] = useState<ProvinciaAPI[]>([]);
   const [formData, setFormData] = useState({
     nombre: "",
     apellidos: "",
@@ -26,17 +22,6 @@ export default function Registro({ onSuccess }: Props) {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetch("https://www.el-tiempo.net/api/json/v2/provincias")
-      .then((response) => response.json())
-      .then((data) => {
-        if (data && data.provincias) {
-          setProvincias(data.provincias);
-        }
-      })
-      .catch((error) => console.error(error));
-  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target as HTMLInputElement;
@@ -68,13 +53,34 @@ export default function Registro({ onSuccess }: Props) {
         provincia: formData.provincia,
         fechaNac: formData.fechaNac,
       };
+      
       const creado = await usuariosAPI.create(nuevo as Usuario);
-      alert("Registro completado con éxito");
-      if (onSuccess) onSuccess(creado as Usuario);
-      navigate("/");
+
+      try {
+        localStorage.setItem("usuario", JSON.stringify(creado));
+      } catch (err) {
+        console.warn(err);
+      }
+
+      Swal.fire({
+        title: "¡Registro Completado!",
+        text: "Tu cuenta en PathFinder ha sido creada con éxito. Se ha iniciado sesión automáticamente.",
+        icon: "success",
+        confirmButtonColor: "#007bff",
+        confirmButtonText: "Ver mis resultados",
+      }).then(() => {
+        if (onSuccess) onSuccess(creado as Usuario);
+        navigate(-1);
+      });
+
     } catch (err) {
       console.error(err);
-      alert("Error al registrar: El correo podría estar ya en uso");
+      Swal.fire({
+        title: "Error al registrar",
+        text: "El correo electrónico introducido ya se encuentra en uso o el servidor de Azure no responde.",
+        icon: "error",
+        confirmButtonColor: "#007bff",
+      });
     } finally {
       setLoading(false);
     }
@@ -107,12 +113,11 @@ export default function Registro({ onSuccess }: Props) {
           value={formData.provincia} 
           onChange={handleChange} 
           className="w-full border px-2 py-1 focus:outline-none focus:border-[#007bff]" 
-          placeholder={provincias.length === 0 ? "Cargando provincias..." : "Empieza a escribir tu provincia..."}
-          disabled={provincias.length === 0}
+          placeholder="Provincia..."
         />
         <datalist id="provincias-api-list">
-          {provincias.map((prov) => (
-            <option key={prov.CODPROV} value={prov.NOM_PROV} />
+          {provinciasList.map((prov) => (
+            <option key={prov.id} value={prov.nm} />
           ))}
         </datalist>
       </div>

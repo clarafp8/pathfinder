@@ -2,6 +2,7 @@ import { Outlet, Link, useNavigate } from "react-router";
 import { User, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import Login from "./Login"; // Asegúrate de que la ruta a tu componente Login sea correcta
+import logo from '../../../logo_Black.png';
 
 export function Layout() {
   const navigate = useNavigate();
@@ -39,10 +40,10 @@ export function Layout() {
       <nav className="bg-white border-b border-gray-200 px-6 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <img 
-              src="/logo_Black.png" 
-              alt="Logo PathFinder" 
-              className="w-8 h-8 object-contain" 
+            <img
+              src={logo}
+              alt="Logo PathFinder"
+              className="w-8 h-8 object-contain"
             />
             <span className="font-semibold text-xl">PathFinder</span>
           </Link>
