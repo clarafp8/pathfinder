@@ -8,6 +8,9 @@ export interface Usuario {
   password?: string;
   fechaNac?: string;
   provincia?: string;
+  bio?: string;
+  intereses?: string;
+  fotoUrl?: string;
 }
 
 export interface Publicacion {
@@ -90,7 +93,6 @@ export const usuariosAPI = {
         } catch {
           detalleError = "No se pudo leer la respuesta del servidor.";
         }
-
         throw new Error(`Error ${response.status} (${response.statusText}): ${detalleError}`);
       }
 
@@ -101,15 +103,26 @@ export const usuariosAPI = {
     }
   },
 
-  update: async (id: number, usuario: Usuario): Promise<Usuario> => {
+  update: async (id: number, usuario: Usuario, archivoFoto?: File): Promise<Usuario> => {
     try {
+      const data = new FormData();
+      
+      data.append("nombre", usuario.nombre);
+      data.append("apellidos", usuario.apellidos);
+      data.append("provincia", usuario.provincia || "");
+      data.append("fechaNac", usuario.fechaNac || "");
+      data.append("bio", usuario.bio || "");
+      data.append("intereses", usuario.intereses || "");
+      
+      if (archivoFoto) {
+        data.append("archivoFoto", archivoFoto);
+      }
+
       const response = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(usuario),
+        body: data, 
       });
+
       if (!response.ok) throw new Error("Error al actualizar usuario");
       return await response.json();
     } catch (error) {
@@ -171,7 +184,6 @@ export const publicacionesAPI = {
     }
   },
 
-  // 🎯 CORREGIDO: El método 'like' ahora pertenece legítimamente a publicacionesAPI
   like: async (publicacionId: number): Promise<any> => {
     try {
       const response = await fetch(`${API_BASE_URL}/publicaciones/${publicacionId}/like`, {

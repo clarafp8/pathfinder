@@ -69,22 +69,32 @@ export function Discover() {
     return R * c; 
   };
 
-  const filtradasYOrdenadas = titulaciones
+  const filtradasYOrdenadas = (titulaciones || [])
     .filter((t) => {
+      // 1. Seguridad: Si el grado viene corrupto o nulo, lo saltamos
+      if (!t) return false;
+
+      // 2. Comprobación segura del nombre
       const cumpleNombre = !filtroNombre || t.nombre?.toLowerCase().includes(filtroNombre.toLowerCase());
-      const cumpleTipo = filtroTipo === "" || t.tipo === filtroTipo;
-      const cumpleRama = filtroRama === "" || t.rama?.nombre === filtroRama;
       
+      // 3. Comprobación segura del tipo
+      const cumpleTipo = filtroTipo === "" || t.tipo === filtroTipo;
+      
+      // 4. Comprobación segura de la rama (evita explotar si t.rama es null)
+      const cumpleRama = filtroRama === "" || (t.rama && t.rama.nombre === filtroRama);
+      
+      // 5. Comprobación segura de la provincia (evita explotar si centros es null o está vacío)
       const cumpleProvincia = filtroProvincia === "" || (t.centros && t.centros.some(centro => 
-        centro.provincia?.toLowerCase().includes(filtroProvincia.toLowerCase())
+        centro && centro.provincia && centro.provincia.toLowerCase().includes(filtroProvincia.toLowerCase())
       ));
       
       return cumpleNombre && cumpleTipo && cumpleRama && cumpleProvincia;
     })
     .map((t) => {
+      // Si el usuario activa la ubicación, calculamos distancias solo si el centro tiene coordenadas válidas
       if (userCoords && t.centros && t.centros.length > 0) {
         const distancias = t.centros
-          .filter(c => c.latitud !== null && c.longitud !== null && c.latitud !== undefined && c.longitud !== undefined)
+          .filter(c => c && c.latitud !== null && c.longitud !== null && c.latitud !== undefined && c.longitud !== undefined)
           .map(c => calcularDistancia(userCoords.lat, userCoords.lng, c.latitud!, c.longitud!));
         
         if (distancias.length > 0) {

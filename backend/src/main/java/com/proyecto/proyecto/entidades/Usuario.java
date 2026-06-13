@@ -15,6 +15,7 @@ import jakarta.persistence.Table;
 @Table(name = "usuario")
 @Inheritance(strategy = InheritanceType.JOINED)
 public class Usuario {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -36,85 +37,94 @@ public class Usuario {
 
     @Column(nullable = false)
     private String password;
-    
+
     @Column(columnDefinition = "TEXT")
     private String bio;
 
     @Column(columnDefinition = "TEXT")
     private String intereses;
 
+    @Column(name = "foto_url", length = 255)
+    private String fotoUrl;
 
-	public Integer getId() {
-		return id;
-	}
+    public Integer getId() {
+        return id;
+    }
 
-	public void setId(Integer id) {
-		this.id = id;
-	}
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
-	public String getNombre() {
-		return nombre;
-	}
+    public String getNombre() {
+        return nombre;
+    }
 
-	public void setNombre(String nombre) {
-		this.nombre = nombre;
-	}
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
 
-	public String getApellidos() {
-		return apellidos;
-	}
+    public String getApellidos() {
+        return apellidos;
+    }
 
-	public void setApellidos(String apellidos) {
-		this.apellidos = apellidos;
-	}
+    public void setApellidos(String apellidos) {
+        this.apellidos = apellidos;
+    }
 
-	public String getEmail() {
-		return email;
-	}
+    public String getEmail() {
+        return email;
+    }
 
-	public void setEmail(String email) {
-		this.email = email;
-	}
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-	public String getProvincia() {
-		return provincia;
-	}
+    public String getProvincia() {
+        return provincia;
+    }
 
-	public void setProvincia(String provincia) {
-		this.provincia = provincia;
-	}
+    public void setProvincia(String provincia) {
+        this.provincia = provincia;
+    }
 
-	public LocalDate getFechaNac() {
-		return fechaNac;
-	}
+    public LocalDate getFechaNac() {
+        return fechaNac;
+    }
 
-	public void setFechaNac(LocalDate fechaNac) {
-		this.fechaNac = fechaNac;
-	}
+    public void setFechaNac(LocalDate fechaNac) {
+        this.fechaNac = fechaNac;
+    }
 
-	public String getPassword() {
-		return password;
-	}
+    public String getPassword() {
+        return password;
+    }
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
-	
-	 public String getBio() {
-	        return bio;
-	    }
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-	    public void setBio(String bio) {
-	        this.bio = bio;
-	    }
+    public String getBio() {
+        return bio;
+    }
 
-	    public String getIntereses() {
-	        return intereses;
-	    }
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
 
-	    public void setIntereses(String intereses) {
-	        this.intereses = intereses;
-	    }
-    
-    
+    public String getIntereses() {
+        return intereses;
+    }
+
+    public void setIntereses(String intereses) {
+        this.intereses = intereses;
+    }
+
+    public String getFotoUrl() {
+        return fotoUrl;
+    }
+
+    public void setFotoUrl(String fotoUrl) {
+        this.fotoUrl = fotoUrl;
+    }
+
 }

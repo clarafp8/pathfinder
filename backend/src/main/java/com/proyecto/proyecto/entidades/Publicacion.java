@@ -2,6 +2,8 @@ package com.proyecto.proyecto.entidades;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -12,11 +14,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "Publicacion")
+@Table(name = "publicacion")
 public class Publicacion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_publicacion")
     private Integer idPublicacion;
 
     private String titulo;
@@ -28,10 +31,12 @@ public class Publicacion {
 
     @ManyToOne
     @JoinColumn(name = "id_usuario", nullable = false)
+    @JsonIgnoreProperties({"publicaciones", "password", "intereses", "bio", "fechaNac"})
     private Usuario autor;
 
     @ManyToOne
     @JoinColumn(name = "id_publicacion_padre")
+    @JsonIgnoreProperties({"padre", "autor"})
     private Publicacion padre;
 
     @Column(name = "likes")
