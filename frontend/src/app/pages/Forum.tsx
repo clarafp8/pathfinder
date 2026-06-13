@@ -12,19 +12,18 @@ const trendingTopics = [
 
 export function Forum() {
   const [posts, setPosts] = useState<any[]>([]);
+  const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
   const [showNewPost, setShowNewPost] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [creatingPost, setCreatingPost] = useState(false);
 
-  // Estados para la gestión de hilos y respuestas
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [replies, setReplies] = useState<any[]>([]);
   const [newReplyContent, setNewReplyContent] = useState("");
   const [loadingReplies, setLoadingReplies] = useState(false);
 
-  // Cargar temas principales
   const loadPosts = async () => {
     try {
       const data = await publicacionesAPI.getMainTopics();
@@ -34,7 +33,6 @@ export function Forum() {
     }
   };
 
-  // Cargar respuestas de un hilo concreto
   const loadReplies = async (postId: number) => {
     setLoadingReplies(true);
     try {
@@ -47,7 +45,6 @@ export function Forum() {
     }
   };
 
-  // Polling para actualizar los datos automáticamente cada 10 segundos
   useEffect(() => {
     loadPosts().then(() => setLoading(false));
     const intervalo = setInterval(() => {
@@ -60,14 +57,16 @@ export function Forum() {
     return () => clearInterval(intervalo);
   }, [selectedPost]);
 
-  // Manejar la apertura de un hilo
   const handleViewThread = (post: any) => {
     setSelectedPost(post);
     loadReplies(post.idPublicacion);
   };
 
-  // Crear un tema principal
   const handleCreatePost = async () => {
+    if (!newPostTitle.trim()) {
+      setError("El título no puede estar vacío");
+      return;
+    }
     if (!newPostContent.trim()) {
       setError("El contenido no puede estar vacío");
       return;
@@ -92,7 +91,7 @@ export function Forum() {
 
     try {
       const newPublication = {
-        titulo: "Tema del Foro",
+        titulo: newPostTitle,
         contenido: newPostContent,
         autor: { id: idAutenticado },
         padre: null
@@ -100,6 +99,7 @@ export function Forum() {
 
       const created = await publicacionesAPI.create(newPublication);
       setPosts([created, ...posts]);
+      setNewPostTitle("");
       setNewPostContent("");
       setShowNewPost(false);
     } catch (err) {
@@ -110,7 +110,6 @@ export function Forum() {
     }
   };
 
-  // Publicar una respuesta conectada al tema padre
   const handleCreateReply = async () => {
     if (!newReplyContent.trim() || !selectedPost) return;
 
@@ -132,7 +131,7 @@ export function Forum() {
         titulo: `Re: ${selectedPost.titulo || "Tema"}`,
         contenido: newReplyContent,
         autor: { id: idAutenticado },
-        padre: { idPublicacion: selectedPost.idPublicacion } // Relación correcta con el padre
+        padre: { idPublicacion: selectedPost.idPublicacion } 
       };
 
       const createdReply = await publicacionesAPI.create(replyPayload);
@@ -141,6 +140,19 @@ export function Forum() {
     } catch (err) {
       console.error("Error al responder:", err);
       setError("No se pudo enviar la respuesta");
+    }
+  };
+
+  const handleLikePost = async (publicacionId: number | undefined) => {
+    if (!publicacionId) return;
+    try {
+      const updatedPost = await publicacionesAPI.like(publicacionId);
+      setPosts(posts.map(post => post.idPublicacion === publicacionId ? updatedPost : post));
+      if (selectedPost?.idPublicacion === publicacionId) {
+        setSelectedPost(updatedPost);
+      }
+    } catch (err) {
+      console.error("No se pudo registrar el like:", err);
     }
   };
 
@@ -178,10 +190,8 @@ export function Forum() {
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 py-6 px-6">
         
-        {/* COLUMNA PRINCIPAL (PUBLICACIONES O HILO DETALLADO) */}
         <div className="lg:col-span-2 space-y-4">
           
-          {/* VISTA 1: HILO SELECCIONADO CON SUS RESPUESTAS */}
           {selectedPost ? (
             <div className="space-y-6">
               <button
@@ -191,7 +201,6 @@ export function Forum() {
                 <ArrowLeft className="w-5 h-5" /> Volver al listado del foro
               </button>
 
-              {/* Post Principal en el Detalle */}
               <div className="border-2 border-gray-900 p-6 bg-gray-50">
                 <div className="flex gap-4">
                   <div className="w-12 h-12 bg-gray-900 text-white flex items-center justify-center flex-shrink-0 font-bold rounded">
@@ -202,12 +211,12 @@ export function Forum() {
                       <span className="font-semibold">{selectedPost.autor?.nombre} {selectedPost.autor?.apellidos}</span>
                       <span className="text-gray-500">· {formatDate(selectedPost.fechaCreacion)}</span>
                     </div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">{selectedPost.titulo}</h2>
                     <p className="text-gray-900 text-lg mb-4">{selectedPost.contenido}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Bloque de Respuestas */}
               <div className="space-y-4 pl-6 border-l-2 border-gray-200">
                 <h3 className="font-bold text-gray-900 text-lg">Respuestas ({replies.length})</h3>
                 
@@ -228,7 +237,13 @@ export function Forum() {
                             <span className="text-gray-400">· {formatDate(reply.fechaCreacion)}</span>
                           </div>
                           <p className="text-gray-800 text-sm">{reply.contenido}</p>
-                          <div className="mt-2 flex justify-end">
+                          <div className="mt-2 flex justify-end gap-4 items-center">
+                            <button 
+                              onClick={() => handleLikePost(reply.idPublicacion)}
+                              className="text-xs text-gray-500 hover:text-[#007bff] flex items-center gap-1"
+                            >
+                              <Heart className="w-3.5 h-3.5" /> <span>{reply.likes || 0}</span>
+                            </button>
                             <button 
                               onClick={() => handleDeletePost(reply.idPublicacion, true)}
                               className="text-xs text-red-400 hover:text-red-600"
@@ -243,7 +258,6 @@ export function Forum() {
                 )}
               </div>
 
-              {/* Formulario para Añadir una Nueva Respuesta */}
               <div className="border-2 border-gray-200 p-4 bg-white">
                 <div className="flex gap-2">
                   <input
@@ -263,8 +277,6 @@ export function Forum() {
               </div>
             </div>
           ) : (
-            
-            /* VISTA 2: LISTADO GENERAL DE TEMAS */
             <>
               <div className="border-2 border-gray-200 p-6">
                 <button
@@ -278,13 +290,21 @@ export function Forum() {
                 {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm">{error}</div>}
 
                 {showNewPost && (
-                  <div className="border border-gray-200 p-4 mb-4">
+                  <div className="border border-gray-200 p-4 mb-4 space-y-3">
+                    <input
+                      type="text"
+                      value={newPostTitle}
+                      onChange={(e) => { setNewPostTitle(e.target.value); setError(""); }}
+                      placeholder="Título del nuevo tema o debate..."
+                      disabled={creatingPost}
+                      className="w-full border border-gray-300 p-3 focus:outline-none focus:border-[#007bff] text-sm font-semibold"
+                    />
                     <textarea
                       value={newPostContent}
                       onChange={(e) => { setNewPostContent(e.target.value); setError(""); }}
                       placeholder="¿Qué quieres debatir o consultar con la comunidad?"
                       disabled={creatingPost}
-                      className="w-full border border-gray-300 p-3 h-24 resize-none focus:outline-none focus:border-[#007bff]"
+                      className="w-full border border-gray-300 p-3 h-24 resize-none focus:outline-none focus:border-[#007bff] text-sm"
                     />
                     <div className="flex gap-2 mt-3">
                       <button
@@ -294,7 +314,7 @@ export function Forum() {
                       >
                         {creatingPost ? "Publicando..." : "Publicar tema"}
                       </button>
-                      <button onClick={() => setShowNewPost(false)} className="bg-gray-200 text-gray-800 px-6 py-2">
+                      <button onClick={() => { setShowNewPost(false); setNewPostTitle(""); setNewPostContent(""); }} className="bg-gray-200 text-gray-800 px-6 py-2">
                         Cancelar
                       </button>
                     </div>
@@ -321,10 +341,14 @@ export function Forum() {
                           <span className="text-gray-400 text-sm">· {formatDate(post.fechaCreacion)}</span>
                         </div>
 
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">{post.titulo}</h3>
                         <p className="text-gray-800 mb-4">{post.contenido}</p>
 
                         <div className="flex gap-8 text-gray-500">
-                          <button className="flex items-center gap-2 hover:text-[#007bff]">
+                          <button 
+                            onClick={() => handleLikePost(post.idPublicacion)}
+                            className="flex items-center gap-2 hover:text-[#007bff]"
+                          >
                             <Heart className="w-5 h-5" /> <span>{post.likes || 0}</span>
                           </button>
                           <button 
@@ -353,7 +377,6 @@ export function Forum() {
           )}
         </div>
 
-        {/* COLUMNA DERECHA: SECCIONES LATERALES ESTÁTICAS */}
         <div className="space-y-6">
           <div className="border-2 border-gray-200 p-6 sticky top-6 bg-white">
             <h2 className="text-xl font-bold mb-4 text-gray-900">Temas en Tendencia</h2>

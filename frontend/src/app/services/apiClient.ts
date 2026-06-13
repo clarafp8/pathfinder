@@ -23,6 +23,7 @@ export interface Publicacion {
   fechaCreacion?: string;
   likes?: number;
 }
+
 export interface Rama {
   idRama: number;
   nombre: string;
@@ -41,12 +42,12 @@ export interface Centro {
 export interface Titulacion {
   idTitulacion?: number;
   nombre: string;
-  tipo?: string; 
-  notaCorte: number;     
+  tipo?: string;
+  notaCorte: number;
   ramaIdRama?: number;
-  ramaNombre?: string; 
-  rama?: Rama;        
-  centros?: Centro[];  
+  ramaNombre?: string;
+  rama?: Rama;
+  centros?: Centro[];
 }
 
 export const usuariosAPI = {
@@ -81,10 +82,21 @@ export const usuariosAPI = {
         },
         body: JSON.stringify(usuario),
       });
-      if (!response.ok) throw new Error("Error al crear usuario");
+
+      if (!response.ok) {
+        let detalleError = "";
+        try {
+          detalleError = await response.text();
+        } catch {
+          detalleError = "No se pudo leer la respuesta del servidor.";
+        }
+
+        throw new Error(`Error ${response.status} (${response.statusText}): ${detalleError}`);
+      }
+
       return await response.json();
     } catch (error) {
-      console.error("Error en create usuario:", error);
+      console.error("Error detallado en create usuario:", error);
       throw error;
     }
   },
@@ -155,6 +167,21 @@ export const publicacionesAPI = {
       if (!response.ok) throw new Error("Error al eliminar publicación");
     } catch (error) {
       console.error("Error en delete publicación:", error);
+      throw error;
+    }
+  },
+
+  // 🎯 CORREGIDO: El método 'like' ahora pertenece legítimamente a publicacionesAPI
+  like: async (publicacionId: number): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/publicaciones/${publicacionId}/like`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" }
+      });
+      if (!response.ok) throw new Error("Error al procesar el like");
+      return await response.json();
+    } catch (error) {
+      console.error("Error en like:", error);
       throw error;
     }
   },

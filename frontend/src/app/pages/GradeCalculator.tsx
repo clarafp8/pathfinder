@@ -1,145 +1,217 @@
 import { useState } from "react";
-import { titulacionesAPI, Titulacion } from "../services/apiClient";
 
 const fields = {
   ciencias: {
-    name: "Ciencias",
-    subjects: [
-      "Matemáticas II",
-      "Física",
-      "Química",
-      "Biología",
-      "Dibujo Técnico II",
-      "Geología",
-    ],
+    name: "Ciencias y Tecnología",
+    subjects: ["Física", "Química", "Biología", "Dibujo Técnico II", "Geología"],
   },
   letras: {
-    name: "Letras",
-    subjects: [
-      "Latín II",
-      "Griego II",
-      "Historia del Arte",
-      "Geografía",
-      "Literatura Universal",
-      "Economía de la Empresa",
-    ],
-  },
-  tecnologia: {
-    name: "Tecnología",
-    subjects: [
-      "Matemáticas II",
-      "Física",
-      "Dibujo Técnico II",
-      "Tecnología Industrial II",
-      "Electrotecnia",
-      "Química",
-    ],
+    name: "Humanidades y Ciencias Sociales",
+    subjects: ["Historia del Arte", "Geografía", "Economía de la Empresa", "Literatura Universal"],
   },
 };
 
 export function GradeCalculator() {
   const [selectedField, setSelectedField] = useState<keyof typeof fields>("ciencias");
-  const [generalPhaseGrade, setGeneralPhaseGrade] = useState("");
+  const [bachilleratoGrade, setBachilleratoGrade] = useState("");
+  
+  const [generalSubjects, setGeneralSubjects] = useState<Record<string, string>>({
+    lengua: "",
+    ingles: "",
+    historia: "",
+    modalidad: "" 
+  });
+
   const [specificSubjects, setSpecificSubjects] = useState<Record<string, { grade: string; weight: string }>>({});
+  const [modalidadWeight, setModalidadWeight] = useState(""); // Ponderación específica para la troncal de la general
   const [calculatedGrade, setCalculatedGrade] = useState<number | null>(null);
-  const [recommendedTitulaciones, setRecommendedTitulaciones] = useState<Titulacion[]>([]);
-  const [loadingTitulaciones, setLoadingTitulaciones] = useState(false);
   const [error, setError] = useState<string>("");
 
-  const handleSubjectChange = (subject: string, field: "grade" | "weight", value: string) => {
+  const handleGradeKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "-" || e.key === "+") {
+      e.preventDefault();
+    }
+  };
+
+  const sanitizeGrade = (value: string): string => {
+    if (value === "") return "";
+    let num = parseFloat(value);
+    if (isNaN(num)) return "";
+    if (num < 0) num = 0;
+    if (num > 10) num = 10;
+    return num.toString();
+  };
+
+  const handleGeneralChange = (subject: string, value: string) => {
+    setGeneralSubjects({
+      ...generalSubjects,
+      [subject]: sanitizeGrade(value),
+    });
+  };
+
+  const handleSpecificChange = (subject: string, field: "grade" | "weight", value: string) => {
     setSpecificSubjects({
       ...specificSubjects,
       [subject]: {
         ...specificSubjects[subject],
-        [field]: value,
+        [field]: field === "grade" ? sanitizeGrade(value) : value,
       },
     });
   };
 
-  const calculateGrade = async () => {
-    const general = parseFloat(generalPhaseGrade);
-    if (isNaN(general) || general < 0 || general > 10) {
-      setError("Por favor, introduce una nota válida para la fase general (0-10)");
+  const calculateGrade = () => {
+    setError("");
+    const bach = parseFloat(bachilleratoGrade);
+    
+    if (isNaN(bach) || bach < 5 || bach > 10) {
+      setError("Introduce una nota de Bachillerato válida (5-10)");
       return;
     }
 
-    let specificPoints = 0;
+    const gGrades = Object.values(generalSubjects).map(v => parseFloat(v));
+    if (gGrades.some(isNaN)) {
+      setError("Por favor, rellena todas las notas de la Fase General");
+      return;
+    }
+
+    const generalPhaseAverage = gGrades.reduce((a, b) => a + b, 0) / 4;
+    const accesoGrade = (bach * 0.6) + (generalPhaseAverage * 0.4);
+
+    const listaPuntos: number[] = [];
+
+    const notaModalidad = parseFloat(generalSubjects.modalidad);
+    const pesoModalidad = parseFloat(modalidadWeight);
+    if (!isNaN(notaModalidad) && !isNaN(pesoModalidad) && notaModalidad >= 5) {
+      listaPuntos.push(notaModalidad * pesoModalidad);
+    }
+
     Object.entries(specificSubjects).forEach(([_, data]) => {
       const grade = parseFloat(data.grade);
       const weight = parseFloat(data.weight);
-      if (!isNaN(grade) && !isNaN(weight) && grade >= 5) {
-        specificPoints += grade * weight;
+      if (!isNaN(grade) && !weight && grade >= 5) {
+        listaPuntos.push(grade * weight);
       }
     });
 
-    const finalGrade = Math.min(general + specificPoints, 14);
+    listaPuntos.sort((a, b) => b - a);
+
+    const puntosEspecifica = (listaPuntos[0] || 0) + (listaPuntos[1] || 0);
+
+    const finalGrade = Math.min(accesoGrade + puntosEspecifica, 14);
     setCalculatedGrade(parseFloat(finalGrade.toFixed(2)));
-    setError("");
-
-    // Cargar titulaciones recomendadas
-    await loadRecommendedTitulaciones(finalGrade);
-  };
-
-  const loadRecommendedTitulaciones = async (nota: number) => {
-    try {
-      setLoadingTitulaciones(true);
-      const data = await titulacionesAPI.getRecommended(nota);
-      setRecommendedTitulaciones(data);
-    } catch (err) {
-      console.error("Error al cargar titulaciones recomendadas:", err);
-      setError("No se pudieron cargar las titulaciones recomendadas");
-    } finally {
-      setLoadingTitulaciones(false);
-    }
   };
 
   return (
-    <div className="min-h-screen bg-white py-20 px-6">
+    <div className="min-h-screen bg-white py-12 px-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl mb-6">Calculadora de Nota PAU</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-6">Calculadora de Nota PAU</h1>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700">
+          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 font-medium">
             {error}
           </div>
         )}
 
-        <div className="bg-blue-50 border border-[#007bff] p-6 mb-8">
-          <h2 className="text-xl mb-3">¿Cómo funciona?</h2>
-          <p className="text-gray-700 mb-2">
-            La nota de acceso a la universidad se calcula sumando:
-          </p>
-          <ul className="list-disc list-inside text-gray-700 space-y-1">
-            <li><strong>Fase General:</strong> Tu nota media de Bachillerato y los exámenes obligatorios (máximo 10 puntos)</li>
-            <li><strong>Fase Específica:</strong> Hasta 4 puntos adicionales según las asignaturas ponderadas por la universidad</li>
-            <li><strong>Nota final:</strong> Máximo 14 puntos</li>
-          </ul>
-        </div>
-
         <div className="space-y-8">
-          <div className="border-2 border-gray-200 p-6">
-            <h2 className="text-2xl mb-4">Fase General</h2>
-            <label className="block mb-2 text-gray-700">Nota de la fase general (0-10):</label>
+          <div className="border-2 border-gray-200 p-6 bg-gray-50">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">1. Expediente Académico</h2>
+            <label className="block mb-2 text-gray-700 font-medium">Nota Media de Bachillerato (5-10):</label>
             <input
               type="number"
-              min="0"
+              min="5"
               max="10"
               step="0.01"
-              value={generalPhaseGrade}
-              onChange={(e) => setGeneralPhaseGrade(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff]"
-              placeholder="Ej: 7.5"
+              onKeyPress={handleGradeKeyPress}
+              value={bachilleratoGrade}
+              onChange={(e) => setBachilleratoGrade(sanitizeGrade(e.target.value))}
+              className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff] bg-white"
+              placeholder="Ej: 8.25"
             />
           </div>
 
           <div className="border-2 border-gray-200 p-6">
-            <h2 className="text-2xl mb-4">Fase Específica</h2>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">2. Fase General Obligatoria</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-700 mb-1 font-medium">Lengua Castellana y Literatura II</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.01"
+                  onKeyPress={handleGradeKeyPress}
+                  value={generalSubjects.lengua}
+                  onChange={(e) => handleGeneralChange("lengua", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff]"
+                  placeholder="0 - 10"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1 font-medium">Lengua Extranjera II (Inglés)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.01"
+                  onKeyPress={handleGradeKeyPress}
+                  value={generalSubjects.ingles}
+                  onChange={(e) => handleGeneralChange("ingles", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff]"
+                  placeholder="0 - 10"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1 font-medium">Historia de España / Filosofía</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.01"
+                  onKeyPress={handleGradeKeyPress}
+                  value={generalSubjects.historia}
+                  onChange={(e) => handleGeneralChange("historia", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff]"
+                  placeholder="0 - 10"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-700 mb-1 font-medium">Troncal de Modalidad (Matemáticas II / Latín II)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.01"
+                    onKeyPress={handleGradeKeyPress}
+                    value={generalSubjects.modalidad}
+                    onChange={(e) => handleGeneralChange("modalidad", e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff]"
+                    placeholder="0 - 10"
+                  />
+                  <select
+                    value={modalidadWeight}
+                    onChange={(e) => setModalidadWeight(e.target.value)}
+                    className="w-40 px-2 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff] text-sm"
+                  >
+                    <option value="">¿Pondera?</option>
+                    <option value="0.1">0.1</option>
+                    <option value="0.2">0.2</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
 
+          <div className="border-2 border-gray-200 p-6">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">3. Fase Específica (Asignaturas Voluntarias Extra)</h2>
             <div className="mb-6">
-              <label className="block mb-2 text-gray-700">Selecciona tu campo de estudio:</label>
+              <label className="block mb-2 text-gray-700 font-medium">Selecciona tu Modalidad de Bachillerato:</label>
               <select
                 value={selectedField}
-                onChange={(e) => setSelectedField(e.target.value as keyof typeof fields)}
+                onChange={(e) => {
+                  setSelectedField(e.target.value as keyof typeof fields);
+                  setSpecificSubjects({});
+                }}
                 className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff]"
               >
                 {Object.entries(fields).map(([key, field]) => (
@@ -151,33 +223,31 @@ export function GradeCalculator() {
             </div>
 
             <div className="space-y-4">
-              <p className="text-gray-700 mb-3">
-                Introduce las notas de tus asignaturas específicas y sus ponderaciones (0.1 o 0.2):
-              </p>
               {fields[selectedField].subjects.map((subject) => (
-                <div key={subject} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center border border-gray-200 p-4">
-                  <div className="font-medium">{subject}</div>
+                <div key={subject} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center border border-gray-200 p-4 bg-white">
+                  <div className="font-medium text-gray-900">{subject}</div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Nota (0-10)</label>
+                    <label className="block text-xs text-gray-500 mb-1">Nota examen (Opcional)</label>
                     <input
                       type="number"
                       min="0"
                       max="10"
                       step="0.01"
+                      onKeyPress={handleGradeKeyPress}
                       value={specificSubjects[subject]?.grade || ""}
-                      onChange={(e) => handleSubjectChange(subject, "grade", e.target.value)}
+                      onChange={(e) => handleSpecificChange(subject, "grade", e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff]"
-                      placeholder="Ej: 8.5"
+                      placeholder="0 - 10"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">Ponderación</label>
+                    <label className="block text-xs text-gray-500 mb-1">Ponderación en tu grado destino</label>
                     <select
                       value={specificSubjects[subject]?.weight || ""}
-                      onChange={(e) => handleSubjectChange(subject, "weight", e.target.value)}
+                      onChange={(e) => handleSpecificChange(subject, "weight", e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff]"
                     >
-                      <option value="">Seleccionar</option>
+                      <option value="">No ponderar (0.0)</option>
                       <option value="0.1">0.1</option>
                       <option value="0.2">0.2</option>
                     </select>
@@ -189,60 +259,26 @@ export function GradeCalculator() {
 
           <button
             onClick={calculateGrade}
-            className="w-full bg-[#007bff] text-white py-4 text-lg hover:bg-[#0056b3] transition-colors"
+            className="w-full bg-[#007bff] text-white py-4 text-lg font-bold hover:bg-[#0056b3] transition-colors"
           >
-            Calcular Nota Final
+            Calcular Nota de Admisión
           </button>
 
           {calculatedGrade !== null && (
-            <div className="space-y-8">
-              <div className="border-2 border-[#007bff] bg-blue-50 p-8 text-center">
-                <h2 className="text-2xl mb-4">Tu Nota de Acceso a la Universidad</h2>
-                <div className="text-6xl font-bold text-[#007bff] mb-4">
-                  {calculatedGrade}
-                </div>
-                <p className="text-gray-700">
-                  {calculatedGrade >= 12
-                    ? "¡Excelente nota! Tienes muchas opciones de grados universitarios."
-                    : calculatedGrade >= 9
-                    ? "Buena nota. Podrás acceder a la mayoría de grados universitarios."
-                    : calculatedGrade >= 7
-                    ? "Nota correcta. Consulta las notas de corte de tus grados de interés."
-                    : "Considera mejorar tu nota con la fase específica para más opciones."}
-                </p>
+            <div className="border-2 border-[#007bff] bg-blue-50 p-8 text-center">
+              <h2 className="text-2xl font-bold mb-2 text-gray-900">Tu Nota de Admisión Final</h2>
+              <div className="text-6xl font-black text-[#007bff] mb-4">
+                {calculatedGrade} <span className="text-2xl font-normal text-gray-500">/ 14</span>
               </div>
-
-              {loadingTitulaciones ? (
-                <div className="text-center p-8 border-2 border-gray-200">
-                  <p className="text-gray-600">Cargando titulaciones recomendadas...</p>
-                </div>
-              ) : (
-                <div className="border-2 border-gray-200 p-6">
-                  <h2 className="text-2xl mb-6">Titulaciones Accesibles</h2>
-                  {recommendedTitulaciones.length === 0 ? (
-                    <p className="text-gray-600 text-center py-8">
-                      No hay titulaciones accesibles con tu nota actual.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {recommendedTitulaciones.map((titulacion) => (
-                        <div
-                          key={titulacion.idTitulacion}
-                          className="border border-gray-200 p-4 hover:border-[#007bff] transition-colors"
-                        >
-                          <h3 className="font-semibold mb-2">{titulacion.nombre}</h3>
-                          <div className="text-sm text-gray-600">
-                            <p>Nota de corte: <span className="font-bold text-[#007bff]">{titulacion.notaCorte}</span></p>
-                            {titulacion.ramaNombre && (
-                              <p>Rama: {titulacion.ramaNombre}</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              <p className="text-gray-700 font-medium max-w-2xl mx-auto">
+                {calculatedGrade >= 12
+                  ? "¡Excelente puntuación! Tienes un perfil altamente competitivo para prácticamente cualquier grado."
+                  : calculatedGrade >= 9
+                  ? "Muy buena nota. Tienes acceso asegurado a la gran mayoría de carreras del sistema universitario."
+                  : calculatedGrade >= 7
+                  ? "Nota media. Podrás entrar en múltiples de las titulaciones ofertadas."
+                  : "Nota de acceso baja. Te recomendamos exprimir las ponderaciones de 0.2 para subir la media."}
+              </p>
             </div>
           )}
         </div>

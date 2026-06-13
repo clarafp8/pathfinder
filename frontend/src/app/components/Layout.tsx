@@ -123,7 +123,7 @@ export function Layout() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-600 text-sm">
-              © 2026 OrientaFuturo. Todos los derechos reservados.
+              © 2026 PathFinder. Todos los derechos reservados.
             </p>
             <div className="flex gap-4">
               <a href="#" className="text-gray-600 hover:text-[#007bff] transition-colors">
