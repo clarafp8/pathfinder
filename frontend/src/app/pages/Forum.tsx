@@ -1,14 +1,6 @@
 import { useEffect, useState } from "react";
-import { Heart, MessageCircle, Share2, User, ArrowLeft, Send } from "lucide-react";
+import { Heart, MessageCircle, Share2, User, ArrowLeft, Send, Sparkles } from "lucide-react";
 import { publicacionesAPI } from "../services/apiClient";
-
-const trendingTopics = [
-  { topic: "#Selectividad2026", posts: "12.5K posts" },
-  { topic: "#NotasDeCorte", posts: "8.3K posts" },
-  { topic: "#VidaUniversitaria", posts: "5.7K posts" },
-  { topic: "#TestVocacional", posts: "4.2K posts" },
-  { topic: "#Erasmus", posts: "3.1K posts" },
-];
 
 export function Forum() {
   const [posts, setPosts] = useState<any[]>([]);
@@ -23,6 +15,9 @@ export function Forum() {
   const [replies, setReplies] = useState<any[]>([]);
   const [newReplyContent, setNewReplyContent] = useState("");
   const [loadingReplies, setLoadingReplies] = useState(false);
+
+  const [wikiData, setWikiData] = useState<any>(null);
+  const [loadingWiki, setLoadingWiki] = useState(true);
 
   const loadPosts = async () => {
     try {
@@ -44,6 +39,36 @@ export function Forum() {
       setLoadingReplies(false);
     }
   };
+
+  //API de Wikipedia en español
+  useEffect(() => {
+    const fetchWikipediaData = async () => {
+      try {
+        setLoadingWiki(true);
+        const hoy = new Date();
+        const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+        const dia = String(hoy.getDate()).padStart(2, "0");
+
+        const response = await fetch(
+          `https://es.wikipedia.org/api/rest_v1/feed/onthisday/selected/${mes}/${dia}`
+        );
+        if (!response.ok) throw new Error();
+        
+        const data = await response.json();
+        if (data.selected && data.selected.length > 0) {
+          // Hecho aleatorio de la lista de hoy para que varíe si recargan
+          const randomIndex = Math.floor(Math.random() * Math.min(data.selected.length, 5));
+          setWikiData(data.selected[randomIndex]);
+        }
+      } catch (err) {
+        console.error("Error cargando Wikipedia:", err);
+      } finally {
+        setLoadingWiki(false);
+      }
+    };
+
+    fetchWikipediaData();
+  }, []);
 
   useEffect(() => {
     loadPosts().then(() => setLoading(false));
@@ -190,8 +215,8 @@ export function Forum() {
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 py-6 px-6">
         
+        {/* COLUMNA PRINCIPAL DEL FORO */}
         <div className="lg:col-span-2 space-y-4">
-          
           {selectedPost ? (
             <div className="space-y-6">
               <button
@@ -219,7 +244,6 @@ export function Forum() {
 
               <div className="space-y-4 pl-6 border-l-2 border-gray-200">
                 <h3 className="font-bold text-gray-900 text-lg">Respuestas ({replies.length})</h3>
-                
                 {loadingReplies ? (
                   <p className="text-sm text-gray-500">Cargando respuestas...</p>
                 ) : replies.length === 0 ? (
@@ -377,37 +401,58 @@ export function Forum() {
           )}
         </div>
 
+        {/* COLUMNA LATERAL DERECHA */}
         <div className="space-y-6">
           <div className="border-2 border-gray-200 p-6 sticky top-6 bg-white">
-            <h2 className="text-xl font-bold mb-4 text-gray-900">Temas en Tendencia</h2>
-            <div className="space-y-4">
-              {trendingTopics.map((topic, index) => (
-                <div key={index} className="hover:bg-gray-50 p-2 cursor-pointer transition-colors">
-                  <div className="text-[#007bff] font-semibold">{topic.topic}</div>
-                  <div className="text-sm text-gray-500">{topic.posts}</div>
-                </div>
-              ))}
+            <div className="flex items-center gap-2 text-gray-900 mb-3">
+              <Sparkles className="w-5 h-5 text-[#007bff]" />
+              <h2 className="text-xl font-bold">Un día como hoy...</h2>
             </div>
-          </div>
+            
+            <p className="text-xs text-gray-400 mb-4 uppercase tracking-wider font-semibold">
+              Tu dato aleatorio del día
+            </p>
 
-          <div className="border-2 border-gray-200 p-6 bg-white">
-            <h2 className="text-xl font-bold mb-4 text-gray-900">Orientadores Recomendados</h2>
-            <div className="space-y-4">
-              {["Elena Torres", "Pablo Jiménez", "Carmen Vega"].map((name, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-200 flex items-center justify-center rounded">
-                    <User className="w-6 h-6 text-gray-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-sm text-gray-900">{name}</div>
-                    <div className="text-xs text-gray-500">@{name.toLowerCase().replace(" ", "_")}</div>
-                  </div>
-                  <button className="bg-gray-900 text-white px-3 py-1 text-xs font-semibold hover:bg-gray-800">
-                    Seguir
-                  </button>
+            {loadingWiki ? (
+              <div className="space-y-3 animate-pulse">
+                <div className="h-4 bg-gray-100 w-1/4"></div>
+                <div className="h-20 bg-gray-100 w-full"></div>
+              </div>
+            ) : wikiData ? (
+              <div className="space-y-4">
+                <div className="inline-block bg-blue-50 text-[#007bff] text-xs font-bold px-2.5 py-1 rounded">
+                  Año {wikiData.year}
                 </div>
-              ))}
-            </div>
+                
+                <p className="text-sm text-gray-700 leading-relaxed font-medium">
+                  {wikiData.text}
+                </p>
+
+                {wikiData.pages && wikiData.pages[0] && (
+                  <div className="border-t pt-4 mt-2">
+                    <p className="text-[11px] font-bold text-gray-400 uppercase mb-2">Artículo recomendado</p>
+                    <a 
+                      href={wikiData.pages[0].content_urls.desktop.page} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="block p-3 border border-gray-100 hover:border-[#007bff] hover:bg-gray-50 transition-colors group"
+                    >
+                      <div className="font-bold text-sm text-gray-900 group-hover:text-[#007bff] transition-colors line-clamp-1">
+                        {wikiData.pages[0].titles.normalized}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-normal">
+                        {wikiData.pages[0].extract || "Haz clic para leer el artículo completo en Wikipedia."}
+                      </p>
+                      <span className="inline-block text-[11px] text-[#007bff] font-semibold mt-2 group-hover:underline">
+                        Saber más en Wikipedia ↗
+                      </span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 italic">No se ha podido cargar el evento histórico de hoy.</p>
+            )}
           </div>
         </div>
 

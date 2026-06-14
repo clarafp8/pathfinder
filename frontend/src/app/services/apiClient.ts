@@ -46,7 +46,7 @@ export interface Titulacion {
   idTitulacion?: number;
   nombre: string;
   tipo?: string;
-  notaCorte: number;
+  notaCorte?: number | null;
   ramaIdRama?: number;
   ramaNombre?: string;
   rama?: Rama;
