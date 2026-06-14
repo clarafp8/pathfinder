@@ -2,6 +2,8 @@ package com.proyecto.proyecto.entidades;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -12,11 +14,9 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.Data;
 
 @Entity
 @Table(name = "titulacion")
-@Data
 public class Titulacion {
 
     @Id
@@ -28,6 +28,7 @@ public class Titulacion {
 
     @ManyToOne
     @JoinColumn(name = "id_rama")
+    @JsonIgnoreProperties({"titulaciones", "cuestionario"})
     private Rama rama;
 
     @ManyToMany

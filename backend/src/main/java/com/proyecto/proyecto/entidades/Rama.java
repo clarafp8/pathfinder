@@ -1,5 +1,7 @@
 package com.proyecto.proyecto.entidades;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -7,11 +9,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import lombok.Data;
 
 @Entity
 @Table(name = "Rama")
-@Data
 public class Rama {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,6 +21,7 @@ public class Rama {
 
     @ManyToOne
     @JoinColumn(name = "id_cuestionario")
+	@JsonIgnoreProperties("ramas")
     private Cuestionario cuestionario;
 
 	public Integer getIdRama() {
