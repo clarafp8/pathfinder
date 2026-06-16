@@ -14,16 +14,16 @@ const fields = {
 export function GradeCalculator() {
   const [selectedField, setSelectedField] = useState<keyof typeof fields>("ciencias");
   const [bachilleratoGrade, setBachilleratoGrade] = useState("");
-  
+
   const [generalSubjects, setGeneralSubjects] = useState<Record<string, string>>({
     lengua: "",
     ingles: "",
     historia: "",
-    modalidad: "" 
+    modalidad: ""
   });
 
   const [specificSubjects, setSpecificSubjects] = useState<Record<string, { grade: string; weight: string }>>({});
-  const [modalidadWeight, setModalidadWeight] = useState(""); // Ponderación específica para la troncal de la general
+  const [modalidadWeight, setModalidadWeight] = useState("");
   const [calculatedGrade, setCalculatedGrade] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
 
@@ -61,8 +61,9 @@ export function GradeCalculator() {
 
   const calculateGrade = () => {
     setError("");
+    setCalculatedGrade(null);
     const bach = parseFloat(bachilleratoGrade);
-    
+
     if (isNaN(bach) || bach < 5 || bach > 10) {
       setError("Introduce una nota de Bachillerato válida (5-10)");
       return;
@@ -74,27 +75,44 @@ export function GradeCalculator() {
       return;
     }
 
+    // ⚖️ VALIDACIÓN LEGAL 1: Media de la fase general obligatoria >= 4.00
     const generalPhaseAverage = gGrades.reduce((a, b) => a + b, 0) / 4;
+    if (generalPhaseAverage < 4) {
+      setError(`Fase General suspensa (Media: ${generalPhaseAverage.toFixed(2)}). Se requiere un mínimo de 4.00 para promediar con Bachillerato.`);
+      return;
+    }
+
+    // ⚖️ VALIDACIÓN LEGAL 2: Nota de acceso general ((Bach * 0.6) + (PAU * 0.4)) >= 5.00
     const accesoGrade = (bach * 0.6) + (generalPhaseAverage * 0.4);
+    if (accesoGrade < 5) {
+      setError(`No apto para acceso universitario. La combinación ponderada es de ${accesoGrade.toFixed(2)} (Mínimo requerido: 5.00).`);
+      return;
+    }
 
     const listaPuntos: number[] = [];
 
+    // ⚖️ VALIDACIÓN LEGAL 3: La troncal general solo pondera si tiene un 5.00 o más en el examen
     const notaModalidad = parseFloat(generalSubjects.modalidad);
     const pesoModalidad = parseFloat(modalidadWeight);
     if (!isNaN(notaModalidad) && !isNaN(pesoModalidad) && notaModalidad >= 5) {
       listaPuntos.push(notaModalidad * pesoModalidad);
     }
 
+    // 🔧 CORRECCIÓN DEL BUG CRÍTICO DE LA FASE ESPECÍFICA
     Object.entries(specificSubjects).forEach(([_, data]) => {
+      if (!data) return;
       const grade = parseFloat(data.grade);
       const weight = parseFloat(data.weight);
-      if (!isNaN(grade) && !weight && grade >= 5) {
+      // Corregido: Comprobar que weight existe y es un número válido
+      if (!isNaN(grade) && !isNaN(weight) && weight > 0 && grade >= 5) {
         listaPuntos.push(grade * weight);
       }
     });
 
+    // Ordenamos las ponderaciones de mayor a menor beneficio económico de puntos
     listaPuntos.sort((a, b) => b - a);
 
+    // Se eligen los dos mejores impactos de la fase específica
     const puntosEspecifica = (listaPuntos[0] || 0) + (listaPuntos[1] || 0);
 
     const finalGrade = Math.min(accesoGrade + puntosEspecifica, 14);
@@ -102,17 +120,18 @@ export function GradeCalculator() {
   };
 
   return (
-    <div className="min-h-screen bg-white py-12 px-6">
+    <div className="min-h-screen bg-white py-8 md:py-12 px-4 md:px-6">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-900 mb-6">Calculadora de Nota PAU</h1>
+        <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-6">Calculadora de Nota PAU</h1>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 font-medium">
-            {error}
+          <div className="mb-6 p-4 bg-red-100 border-2 border-red-400 text-red-700 font-medium text-sm">
+            ⚠️ {error}
           </div>
         )}
 
         <div className="space-y-8">
+          {/* 1. Expediente */}
           <div className="border-2 border-gray-200 p-6 bg-gray-50">
             <h2 className="text-2xl font-bold mb-4 text-gray-900">1. Expediente Académico</h2>
             <label className="block mb-2 text-gray-700 font-medium">Nota Media de Bachillerato (5-10):</label>
@@ -124,11 +143,12 @@ export function GradeCalculator() {
               onKeyPress={handleGradeKeyPress}
               value={bachilleratoGrade}
               onChange={(e) => setBachilleratoGrade(sanitizeGrade(e.target.value))}
-              className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff] bg-white"
+              className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff] bg-white text-base"
               placeholder="Ej: 8.25"
             />
           </div>
 
+          {/* 2. Fase General */}
           <div className="border-2 border-gray-200 p-6">
             <h2 className="text-2xl font-bold mb-4 text-gray-900">2. Fase General Obligatoria</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -191,7 +211,7 @@ export function GradeCalculator() {
                   <select
                     value={modalidadWeight}
                     onChange={(e) => setModalidadWeight(e.target.value)}
-                    className="w-40 px-2 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff] text-sm"
+                    className="w-40 px-2 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff] text-sm bg-white"
                   >
                     <option value="">¿Pondera?</option>
                     <option value="0.1">0.1</option>
@@ -202,8 +222,9 @@ export function GradeCalculator() {
             </div>
           </div>
 
+          {/* 3. Fase Específica */}
           <div className="border-2 border-gray-200 p-6">
-            <h2 className="text-2xl font-bold mb-4 text-gray-900">3. Fase Específica (Asignaturas Voluntarias Extra)</h2>
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">3. Fase Específica (Asignaturas Voluntarias)</h2>
             <div className="mb-6">
               <label className="block mb-2 text-gray-700 font-medium">Selecciona tu Modalidad de Bachillerato:</label>
               <select
@@ -212,7 +233,7 @@ export function GradeCalculator() {
                   setSelectedField(e.target.value as keyof typeof fields);
                   setSpecificSubjects({});
                 }}
-                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff]"
+                className="w-full px-4 py-3 border-2 border-gray-300 focus:outline-none focus:border-[#007bff] bg-white"
               >
                 {Object.entries(fields).map(([key, field]) => (
                   <option key={key} value={key}>
@@ -245,7 +266,7 @@ export function GradeCalculator() {
                     <select
                       value={specificSubjects[subject]?.weight || ""}
                       onChange={(e) => handleSpecificChange(subject, "weight", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff]"
+                      className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-[#007bff] bg-white text-sm"
                     >
                       <option value="">No ponderar (0.0)</option>
                       <option value="0.1">0.1</option>
@@ -259,25 +280,26 @@ export function GradeCalculator() {
 
           <button
             onClick={calculateGrade}
-            className="w-full bg-[#007bff] text-white py-4 text-lg font-bold hover:bg-[#0056b3] transition-colors"
+            className="w-full bg-[#007bff] text-white py-3 md:py-4 text-base md:text-lg font-bold hover:bg-[#0056b3] transition-colors shadow-sm"
           >
             Calcular Nota de Admisión
           </button>
 
+          {/* Resultado */}
           {calculatedGrade !== null && (
-            <div className="border-2 border-[#007bff] bg-blue-50 p-8 text-center">
+            <div className="border-2 border-[#007bff] bg-blue-50 p-8 text-center animate-fadeIn">
               <h2 className="text-2xl font-bold mb-2 text-gray-900">Tu Nota de Admisión Final</h2>
-              <div className="text-6xl font-black text-[#007bff] mb-4">
-                {calculatedGrade} <span className="text-2xl font-normal text-gray-500">/ 14</span>
+              <div className="text-4xl md:text-6xl font-black text-[#007bff] mb-4">
+                {calculatedGrade} <span className="text-xl md:text-2xl font-normal text-gray-500">/ 14</span>
               </div>
-              <p className="text-gray-700 font-medium max-w-2xl mx-auto">
+              <p className="text-sm text-gray-700 font-medium max-w-2xl mx-auto leading-relaxed">
                 {calculatedGrade >= 12
-                  ? "¡Excelente puntuación! Tienes un perfil altamente competitivo para prácticamente cualquier grado."
+                  ? "¡Excelente puntuación! Tienes un perfil altamente competitivo para prácticamente cualquier grado de alta demanda (Medicina, Ingenierías Dobles, etc.)."
                   : calculatedGrade >= 9
-                  ? "Muy buena nota. Tienes acceso asegurado a la gran mayoría de carreras del sistema universitario."
-                  : calculatedGrade >= 7
-                  ? "Nota media. Podrás entrar en múltiples de las titulaciones ofertadas."
-                  : "Nota de acceso baja. Te recomendamos exprimir las ponderaciones de 0.2 para subir la media."}
+                    ? "Muy buena nota. Tienes el acceso prácticamente asegurado a la gran mayoría de carreras del sistema universitario público."
+                    : calculatedGrade >= 7
+                      ? "Nota media-estándar. Podrás entrar en múltiples de las titulaciones ofertadas de corte intermedio."
+                      : "Nota de acceso ajustada a la base. Te recomendamos revisar campus alternativos o ponderaciones estratégicas de 0.2."}
               </p>
             </div>
           )}

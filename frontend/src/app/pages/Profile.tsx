@@ -9,7 +9,7 @@ export function Profile() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 🎯 Recupera automáticamente el usuario guardado por el Login en el almacenamiento local
+    // Recupera el usuario guardado por el Login en el almacenamiento local
     const sesionGuardada = localStorage.getItem("usuario");
     
     if (sesionGuardada) {
@@ -23,7 +23,7 @@ export function Profile() {
     setLoading(false);
   }, []);
 
-  // 🎯 Sincroniza los cambios en el localStorage cuando el usuario guarde sus modificaciones con éxito
+  // Sincroniza los cambios en el localStorage cuando el usuario guarde sus modificaciones con éxito
   const handleUpdateSuccess = (usuarioActualizado: Usuario) => {
     setUsuario(usuarioActualizado);
     localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));

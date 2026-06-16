@@ -47,6 +47,10 @@ public class Usuario {
     @Column(name = "foto_url", length = 255)
     private String fotoUrl;
 
+    @Column(name = "rol", length = 20)
+    private String rol = "USER"; 
+
+
     public Integer getId() {
         return id;
     }
@@ -125,6 +129,14 @@ public class Usuario {
 
     public void setFotoUrl(String fotoUrl) {
         this.fotoUrl = fotoUrl;
+    }
+
+    public String getRol() {
+        return rol;
+    }
+
+    public void setRol(String rol) {
+        this.rol = rol;
     }
 
 }

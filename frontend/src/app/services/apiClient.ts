@@ -11,6 +11,7 @@ export interface Usuario {
   bio?: string;
   intereses?: string;
   fotoUrl?: string;
+  rol?: string;
 }
 
 export interface Publicacion {
@@ -106,27 +107,38 @@ export const usuariosAPI = {
   update: async (id: number, usuario: Usuario, archivoFoto?: File): Promise<Usuario> => {
     try {
       const data = new FormData();
-      
+
       data.append("nombre", usuario.nombre);
       data.append("apellidos", usuario.apellidos);
       data.append("provincia", usuario.provincia || "");
       data.append("fechaNac", usuario.fechaNac || "");
       data.append("bio", usuario.bio || "");
       data.append("intereses", usuario.intereses || "");
-      
+
       if (archivoFoto) {
         data.append("archivoFoto", archivoFoto);
       }
 
       const response = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
         method: "PUT",
-        body: data, 
+        body: data,
       });
 
       if (!response.ok) throw new Error("Error al actualizar usuario");
       return await response.json();
     } catch (error) {
       console.error("Error en update usuario:", error);
+      throw error;
+    }
+  },
+  delete: async (id: number): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Error al eliminar usuario");
+    } catch (error) {
+      console.error("Error en delete usuario:", error);
       throw error;
     }
   },
@@ -240,6 +252,33 @@ export const titulacionesAPI = {
       return await response.json();
     } catch (error) {
       console.error("Error en getByRamaNombre:", error);
+      throw error;
+    }
+  },
+  create: async (titulacion: any): Promise<Titulacion> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/titulaciones`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(titulacion),
+      });
+      if (!response.ok) throw new Error("Error al crear titulación");
+      return await response.json();
+    } catch (error) {
+      console.error("Error en create titulación:", error);
+      throw error;
+    }
+  },
+  delete: async (id: number): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/titulaciones/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Error al eliminar titulación");
+    } catch (error) {
+      console.error("Error en delete titulación:", error);
       throw error;
     }
   },

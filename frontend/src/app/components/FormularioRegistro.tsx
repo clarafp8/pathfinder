@@ -53,7 +53,7 @@ export default function Registro({ onSuccess }: Props) {
         provincia: formData.provincia,
         fechaNac: formData.fechaNac,
       };
-      
+
       const creado = await usuariosAPI.create(nuevo as Usuario);
 
       try {
@@ -107,12 +107,12 @@ export default function Registro({ onSuccess }: Props) {
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Provincia</label>
-        <input 
-          name="provincia" 
-          list="provincias-api-list" 
-          value={formData.provincia} 
-          onChange={handleChange} 
-          className="w-full border px-2 py-1 focus:outline-none focus:border-[#007bff]" 
+        <input
+          name="provincia"
+          list="provincias-api-list"
+          value={formData.provincia}
+          onChange={handleChange}
+          className="w-full border px-2 py-1 focus:outline-none focus:border-[#007bff]"
           placeholder="Provincia..."
         />
         <datalist id="provincias-api-list">
@@ -150,6 +150,20 @@ export default function Registro({ onSuccess }: Props) {
           {loading ? 'Registrando...' : 'Registrarse'}
         </button>
       </div>
+
+      <p className="text-sm text-center text-gray-600 pt-3 border-t border-gray-100">
+        ¿Ya tienes cuenta?{" "}
+        <button
+          type="button"
+          onClick={() => {
+            navigate("/");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className="text-[#007bff] font-semibold hover:underline bg-transparent border-none p-0 cursor-pointer"
+        >
+          Inicia sesión
+        </button>
+      </p>
     </form>
   );
 }

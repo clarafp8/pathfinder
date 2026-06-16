@@ -20,7 +20,7 @@ export function Discover() {
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
 
-  // Estado para controlar qué titulación se está viendo en detalle
+  // Controls the degree profile currently shown in the detailed modal view
   const [selectedTitulacion, setSelectedTitulacion] = useState<Titulacion | null>(null);
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function Discover() {
     );
   };
 
-  // 📋 LÓGICA DE FILTRADO, MAPEO Y ORDENACIÓN (Limpia y usando la utilidad externa)
+  // FILTERING, MAPPING, AND SORTING PIPELINE
   const filtradasYOrdenadas = (titulaciones || [])
     .filter((t) => {
       if (!t) return false;
@@ -88,7 +88,7 @@ export function Discover() {
       }
       return t;
     })
-    .sort((a: any, b: any) => {
+    .sort((a, b) => {
       if (!userCoords) return 0;
 
       const distA = a.distanciaMinima;
@@ -101,18 +101,25 @@ export function Discover() {
       return distA - distB;
     });
 
+  // Dynamically collects options, now automatically including 'Grado Medio' and 'Grado Superior'
   const opcionesTipo = Array.from(new Set(titulaciones.map((t) => t.tipo).filter(Boolean)));
   const opcionesRama = Array.from(new Set(titulaciones.map((t) => t.rama?.nombre).filter(Boolean)));
   const opcionesProvincia = Array.from(new Set(
     titulaciones.flatMap((t) => t.centros?.map(c => c.provincia) || []).filter(Boolean)
   ));
 
-  return (
-    <div className="min-h-screen bg-white py-12 px-6">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl mb-6 font-bold">Explorar Titulaciones</h1>
+  // Helper utility to safely present clean cut-off formats across different scales (14pts vs 10pts)
+  const formatearNotaCorte = (nota: number | null | undefined) => {
+    if (nota === null || nota === undefined) return "5.00";
+    return Number(nota).toFixed(2);
+  };
 
-        {/* FILTROS */}
+  return (
+    <div className="min-h-screen bg-white py-8 md:py-12 px-4 md:px-6">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-2xl md:text-4xl mb-6 font-bold">Explorar Titulaciones</h1>
+
+        {/* FILTERS (Name search, Type selector, Knowledge branch, Provinces, and Geolocation) */}
         <div className="bg-gray-50 border border-gray-200 p-6 mb-8 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
@@ -172,7 +179,7 @@ export function Discover() {
           <div className="pt-2 border-t border-gray-200 flex flex-wrap items-center justify-between gap-4">
             <div className="text-xs text-gray-500">
               {userCoords
-                ? "🟢 Geolocalización activa. Ordenando titulaciones por cercanía al campus más próximo."
+                ? "🟢 Geolocalización activa. Ordenando titulaciones por tu cercanía al campus más próximo."
                 : "Puedes activar la ubicación para calcular de forma métrica la distancia a las universidades."}
             </div>
             <button
@@ -195,7 +202,7 @@ export function Discover() {
           </div>
         )}
 
-        {/* REJILLA DE TARJETAS */}
+        {/* DEGREE PROFILE CARDS PRESENTATION LAYER */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -208,7 +215,7 @@ export function Discover() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtradasYOrdenadas.map((titulacion: any) => (
+            {filtradasYOrdenadas.map((titulacion) => (
               <div
                 key={titulacion.idTitulacion}
                 className="bg-white border-2 border-gray-100 p-6 hover:border-[#007bff] transition-all duration-300 flex flex-col justify-between shadow-sm relative"
@@ -238,7 +245,7 @@ export function Discover() {
 
                   {titulacion.centros && titulacion.centros.length > 0 && (
                     <div className="text-xs text-gray-400 italic mb-4 space-y-0.5">
-                      {titulacion.centros.slice(0, 2).map((c: any) => (
+                      {titulacion.centros.slice(0, 2).map((c) => (
                         <p key={c.idCentro}>📍 {c.nombre} ({c.provincia || "Sin provincia"})</p>
                       ))}
                       {titulacion.centros.length > 2 && <p className="text-[10px]">y {titulacion.centros.length - 2} centros más...</p>}
@@ -247,9 +254,11 @@ export function Discover() {
                 </div>
 
                 <div className="mt-2 border-t pt-3 flex justify-between items-center text-xs text-gray-500">
-                  <span>Nota de corte:</span>
+                  <span>
+                    Nota de corte {titulacion.tipo?.toLowerCase().includes("medio") || titulacion.tipo?.toLowerCase().includes("superior") ? "(sobre 10)" : "(sobre 14)"}:
+                  </span>
                   <strong className="text-xl font-black text-[#007bff]">
-                    {titulacion.notaCorte || "5.00"}
+                    {formatearNotaCorte(titulacion.notaCorte)}
                   </strong>
                 </div>
 
@@ -264,12 +273,12 @@ export function Discover() {
           </div>
         )}
 
-        {/* 🚀 MODAL DINÁMICO DE DETALLES */}
+        {/* DETAILED VIEW MODAL PROFILE */}
         {selectedTitulacion && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
             <div className="bg-white w-full max-w-2xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
-              {/* Cabecera del modal */}
+              {/* Modal header details */}
               <div className="bg-gray-50 p-6 border-b border-gray-200 flex justify-between items-start">
                 <div>
                   <span className="bg-blue-100 text-[#007bff] text-[10px] uppercase font-bold px-2 py-0.5 rounded tracking-wider">
@@ -285,29 +294,31 @@ export function Discover() {
                 </button>
               </div>
 
-              {/* Cuerpo del modal */}
+              {/* Modal body contents */}
               <div className="p-6 space-y-6 overflow-y-auto">
 
-                {/* Bloque de Información General */}
+                {/* General data summary grid */}
                 <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 border border-gray-100">
                   <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Rama de Conocimiento</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Rama / Familia Vinculada</p>
                     <p className="text-sm font-semibold text-gray-800">{selectedTitulacion.rama?.nombre || "No clasificada"}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nota de Corte Mínima</p>
-                    <p className="text-2xl font-black text-[#007bff]">{selectedTitulacion.notaCorte || "5.00"}</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      Nota Mínima {selectedTitulacion.tipo?.toLowerCase().includes("medio") || selectedTitulacion.tipo?.toLowerCase().includes("superior") ? "(Escala 10)" : "(Escala 14)"}
+                    </p>
+                    <p className="text-2xl font-black text-[#007bff]">{formatearNotaCorte(selectedTitulacion.notaCorte)}</p>
                   </div>
                 </div>
 
-                {/* Listado completo de Centros Disponibles */}
+                {/* Available academic centers and locations */}
                 <div>
                   <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-                    Universidades y Campus que lo imparten ({selectedTitulacion.centros?.length || 0})
+                    Centros e Institutos que lo imparten ({selectedTitulacion.centros?.length || 0})
                   </h4>
                   <div className="space-y-2">
                     {selectedTitulacion.centros && selectedTitulacion.centros.length > 0 ? (
-                      selectedTitulacion.centros.map((centro: any) => {
+                      selectedTitulacion.centros.map((centro) => {
                         let distIndividual = null;
                         if (userCoords && centro.latitud && centro.longitud) {
                           distIndividual = calcularDistancia(userCoords.lat, userCoords.lng, centro.latitud, centro.longitud);
@@ -327,7 +338,7 @@ export function Discover() {
                                 </span>
                               )}
 
-                              {/* ↗ BOTÓN DE ENLACE WEB EXTERNO AGREGADO */}
+                              {/* EXTERNAL WEB ACTION LINK LINKING TO THE ACADEMIC INSTITUTION */}
                               <a
                                 href={obtenerLinkUniversidad(centro.nombre)}
                                 target="_blank"
@@ -347,7 +358,7 @@ export function Discover() {
                 </div>
               </div>
 
-              {/* Pie del modal */}
+              {/* Modal footer closing trigger */}
               <div className="bg-gray-50 p-4 border-t border-gray-200 flex justify-end">
                 <button
                   onClick={() => setSelectedTitulacion(null)}

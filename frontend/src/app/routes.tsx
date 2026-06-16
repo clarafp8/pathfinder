@@ -8,6 +8,8 @@ import { Discover } from "./pages/Discover";
 import { Register } from "./pages/Register";
 import { Profile } from "./pages/Profile";
 import { NotFound } from "./pages/NotFound";
+import { PanelAdmin } from "./components/PanelAdmin";
+
 
 export const router = createBrowserRouter([
   {
@@ -21,6 +23,7 @@ export const router = createBrowserRouter([
       { path: "descubrir", Component: Discover },
       { path: "registro", Component: Register },
       { path: "perfil", Component: Profile },
+      { path: "admin", Component: PanelAdmin },
       { path: "*", Component: NotFound },
     ],
   },

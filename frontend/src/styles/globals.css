@@ -1,0 +1,31 @@
+/* Global reset and responsive helpers */
+
+/* Box sizing so padding/border don't increase element width */
+*, *::before, *::after {
+	box-sizing: border-box;
+}
+
+/* Prevent horizontal scroll caused by wide elements */
+html, body {
+	margin: 0;
+	padding: 0;
+	overflow-x: hidden;
+}
+
+/* Make media responsive */
+img, picture, video, iframe {
+	max-width: 100%;
+	height: auto;
+	display: block;
+}
+
+/* Ensure root fills viewport without causing overflow */
+#root {
+	min-height: 100vh;
+}
+
+/* Small helper to avoid 100vw issues when scrollbars are present */
+.no-100vw {
+	max-width: 100%;
+	width: 100%;
+}

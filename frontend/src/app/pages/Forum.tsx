@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Heart, MessageCircle, Share2, User, ArrowLeft, Send, Sparkles } from "lucide-react";
+import { Link } from "react-router";
 import { publicacionesAPI } from "../services/apiClient";
 
 export function Forum() {
@@ -19,10 +20,29 @@ export function Forum() {
   const [wikiData, setWikiData] = useState<any>(null);
   const [loadingWiki, setLoadingWiki] = useState(true);
 
+  // Extraemos el ID del usuario actual logueado en la app
+  const usuarioGuardado = localStorage.getItem("usuario");
+  let currentUserId: number | null = null;
+  if (usuarioGuardado) {
+    try {
+      currentUserId = JSON.parse(usuarioGuardado).id;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   const loadPosts = async () => {
     try {
       const data = await publicacionesAPI.getMainTopics();
-      setPosts(data);
+
+      // 🚀 ORDENACIÓN BLINDADA PARA TYPESCRIPT: 
+      const sortedPosts = [...data].sort((a, b) => {
+        const dateB = new Date(b.fechaCreacion || Date.now()).getTime();
+        const dateA = new Date(a.fechaCreacion || Date.now()).getTime();
+        return dateB - dateA;
+      });
+
+      setPosts(sortedPosts);
     } catch (err) {
       console.error("Error al cargar publicaciones:", err);
     }
@@ -40,7 +60,7 @@ export function Forum() {
     }
   };
 
-  //API de Wikipedia en español
+  // API de Wikipedia dinámico de "Un día como hoy"
   useEffect(() => {
     const fetchWikipediaData = async () => {
       try {
@@ -53,10 +73,9 @@ export function Forum() {
           `https://es.wikipedia.org/api/rest_v1/feed/onthisday/selected/${mes}/${dia}`
         );
         if (!response.ok) throw new Error();
-        
+
         const data = await response.json();
         if (data.selected && data.selected.length > 0) {
-          // Hecho aleatorio de la lista de hoy para que varíe si recargan
           const randomIndex = Math.floor(Math.random() * Math.min(data.selected.length, 5));
           setWikiData(data.selected[randomIndex]);
         }
@@ -96,18 +115,8 @@ export function Forum() {
       setError("El contenido no puede estar vacío");
       return;
     }
-
-    const usuarioGuardado = localStorage.getItem("usuario");
-    if (!usuarioGuardado) {
+    if (!currentUserId) {
       setError("Debes iniciar sesión para poder crear una publicación");
-      return;
-    }
-
-    let idAutenticado: number;
-    try {
-      idAutenticado = JSON.parse(usuarioGuardado).id;
-    } catch (e) {
-      setError("Error de autenticación. Intenta iniciar sesión de nuevo.");
       return;
     }
 
@@ -118,7 +127,7 @@ export function Forum() {
       const newPublication = {
         titulo: newPostTitle,
         contenido: newPostContent,
-        autor: { id: idAutenticado },
+        autor: { id: currentUserId },
         padre: null
       };
 
@@ -129,7 +138,7 @@ export function Forum() {
       setShowNewPost(false);
     } catch (err) {
       console.error(err);
-      setError("Error al crear la publicación en el servidor");
+      setError("Error al crear la publicación. ");
     } finally {
       setCreatingPost(false);
     }
@@ -137,17 +146,8 @@ export function Forum() {
 
   const handleCreateReply = async () => {
     if (!newReplyContent.trim() || !selectedPost) return;
-
-    const usuarioGuardado = localStorage.getItem("usuario");
-    if (!usuarioGuardado) {
+    if (!currentUserId) {
       setError("Debes iniciar sesión para responder");
-      return;
-    }
-
-    let idAutenticado: number;
-    try {
-      idAutenticado = JSON.parse(usuarioGuardado).id;
-    } catch (e) {
       return;
     }
 
@@ -155,8 +155,8 @@ export function Forum() {
       const replyPayload = {
         titulo: `Re: ${selectedPost.titulo || "Tema"}`,
         contenido: newReplyContent,
-        autor: { id: idAutenticado },
-        padre: { idPublicacion: selectedPost.idPublicacion } 
+        autor: { id: currentUserId },
+        padre: { idPublicacion: selectedPost.idPublicacion }
       };
 
       const createdReply = await publicacionesAPI.create(replyPayload);
@@ -200,6 +200,7 @@ export function Forum() {
 
   const formatDate = (dateString?: string): string => {
     if (!dateString) return "Ahora";
+
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -213,10 +214,10 @@ export function Forum() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 py-6 px-6">
-        
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 py-6 px-4 sm:px-6">
+
         {/* COLUMNA PRINCIPAL DEL FORO */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4 min-w-0">
           {selectedPost ? (
             <div className="space-y-6">
               <button
@@ -226,54 +227,73 @@ export function Forum() {
                 <ArrowLeft className="w-5 h-5" /> Volver al listado del foro
               </button>
 
-              <div className="border-2 border-gray-900 p-6 bg-gray-50">
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-gray-900 text-white flex items-center justify-center flex-shrink-0 font-bold rounded">
+              <div className="border-2 border-gray-900 p-4 sm:p-6 bg-gray-50 overflow-hidden">
+                <div className="flex gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-900 text-white flex items-center justify-center flex-shrink-0 font-bold rounded text-sm sm:text-base">
                     {selectedPost.autor?.nombre?.charAt(0).toUpperCase() || "U"}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold">{selectedPost.autor?.nombre} {selectedPost.autor?.apellidos}</span>
-                      <span className="text-gray-500">· {formatDate(selectedPost.fechaCreacion)}</span>
+                  {/* 🚀 min-w-0 permite que este bloque flexible se encoja correctamente en pantallas pequeñas */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1">
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm">
+                        <span className="font-semibold text-gray-900 break-all">{selectedPost.autor?.nombre} {selectedPost.autor?.apellidos}</span>
+                        <span className="text-gray-500">· {formatDate(selectedPost.fechaCreacion)}</span>
+                      </div>
+
+                      {/* Control de borrado: Post Detallado */}
+                      {currentUserId && selectedPost.autor?.id === currentUserId && (
+                        <button
+                          onClick={() => handleDeletePost(selectedPost.idPublicacion)}
+                          className="text-red-400 hover:text-red-600 text-xs font-semibold self-start sm:self-auto"
+                        >
+                          Eliminar debate
+                        </button>
+                      )}
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">{selectedPost.titulo}</h2>
-                    <p className="text-gray-900 text-lg mb-4">{selectedPost.contenido}</p>
+                    {/* 🚀 break-words divide cadenas largas para que no se salgan del layout */}
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 break-words">{selectedPost.titulo}</h2>
+                    <p className="text-gray-900 text-sm sm:text-lg mb-4 break-words whitespace-pre-line">{selectedPost.contenido}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-4 pl-6 border-l-2 border-gray-200">
-                <h3 className="font-bold text-gray-900 text-lg">Respuestas ({replies.length})</h3>
+              {/* Listado de Respuestas */}
+              <div className="space-y-4 pl-3 sm:pl-6 border-l-2 border-gray-200 min-w-0">
+                <h3 className="font-bold text-gray-900 text-base sm:text-lg">Respuestas ({replies.length})</h3>
                 {loadingReplies ? (
                   <p className="text-sm text-gray-500">Cargando respuestas...</p>
                 ) : replies.length === 0 ? (
-                  <p className="text-sm text-gray-500 italic">No hay respuestas en este debate todavía. ¡Escribe la primera!</p>
+                  <p className="text-sm text-gray-500 italic">No hay respuestas en esta publicación todavía. ¡Escribe la primera!</p>
                 ) : (
                   replies.map((reply: any) => (
-                    <div key={reply.idPublicacion} className="border-2 border-gray-200 p-4 bg-white">
-                      <div className="flex gap-3">
-                        <div className="w-9 h-9 bg-[#007bff] text-white flex items-center justify-center flex-shrink-0 text-sm font-semibold rounded">
+                    <div key={reply.idPublicacion} className="border-2 border-gray-200 p-3 sm:p-4 bg-white overflow-hidden">
+                      <div className="flex gap-2 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 bg-[#007bff] text-white flex items-center justify-center flex-shrink-0 text-xs sm:text-sm font-semibold rounded">
                           {reply.autor?.nombre?.charAt(0).toUpperCase() || "U"}
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1 text-sm">
-                            <span className="font-semibold text-gray-900">{reply.autor?.nombre} {reply.autor?.apellidos}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1 text-xs sm:text-sm">
+                            <span className="font-semibold text-gray-900 break-all">{reply.autor?.nombre} {reply.autor?.apellidos}</span>
                             <span className="text-gray-400">· {formatDate(reply.fechaCreacion)}</span>
                           </div>
-                          <p className="text-gray-800 text-sm">{reply.contenido}</p>
+                          <p className="text-gray-800 text-xs sm:text-sm break-words whitespace-pre-line">{reply.contenido}</p>
                           <div className="mt-2 flex justify-end gap-4 items-center">
-                            <button 
+                            <button
                               onClick={() => handleLikePost(reply.idPublicacion)}
                               className="text-xs text-gray-500 hover:text-[#007bff] flex items-center gap-1"
                             >
                               <Heart className="w-3.5 h-3.5" /> <span>{reply.likes || 0}</span>
                             </button>
-                            <button 
-                              onClick={() => handleDeletePost(reply.idPublicacion, true)}
-                              className="text-xs text-red-400 hover:text-red-600"
-                            >
-                              Eliminar
-                            </button>
+
+                            {/* Control de borrado: Respuestas */}
+                            {currentUserId && reply.autor?.id === currentUserId && (
+                              <button
+                                onClick={() => handleDeletePost(reply.idPublicacion, true)}
+                                className="text-xs text-red-400 hover:text-red-600 font-medium"
+                              >
+                                Eliminar
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -282,18 +302,19 @@ export function Forum() {
                 )}
               </div>
 
-              <div className="border-2 border-gray-200 p-4 bg-white">
+              {/* Input para responder */}
+              <div className="border-2 border-gray-200 p-3 bg-white">
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={newReplyContent}
                     onChange={(e) => setNewReplyContent(e.target.value)}
                     placeholder="Escribe una respuesta clara y respetuosa..."
-                    className="flex-1 border-2 border-gray-200 p-3 focus:outline-none focus:border-gray-900 text-sm"
+                    className="flex-1 border-2 border-gray-200 p-2 sm:p-3 focus:outline-none focus:border-gray-900 text-xs sm:text-sm"
                   />
                   <button
                     onClick={handleCreateReply}
-                    className="bg-gray-950 text-white px-4 hover:bg-gray-800 transition-colors flex items-center justify-center"
+                    className="bg-gray-950 text-white px-3 sm:px-4 hover:bg-gray-800 transition-colors flex items-center justify-center shrink-0"
                   >
                     <Send className="w-4 h-4" />
                   </button>
@@ -302,16 +323,26 @@ export function Forum() {
             </div>
           ) : (
             <>
-              <div className="border-2 border-gray-200 p-6">
+              {/* VISTA GENERAL: LISTADO DE POSTS */}
+              <div className="border-2 border-gray-200 p-4 sm:p-6">
                 <button
                   onClick={() => setShowNewPost(!showNewPost)}
                   disabled={loading}
-                  className="w-full bg-[#007bff] text-white py-3 font-semibold hover:bg-[#0056b3] transition-colors mb-4"
+                  className="w-full bg-[#007bff] text-white py-3 font-semibold hover:bg-[#0056b3] transition-colors mb-4 text-sm sm:text-base"
                 >
                   Crear Publicación
                 </button>
 
-                {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm">{error}</div>}
+                {error && (
+                  <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border border-red-200 whitespace-normal break-words">
+                    <span className="break-words">{error}</span>
+                    {error.includes("iniciar sesión") && (
+                      <Link to="/registro" className="text-[#007bff] font-bold hover:underline shrink-0">
+                        Regístrate aquí ↗
+                      </Link>
+                    )}
+                  </div>
+                )}
 
                 {showNewPost && (
                   <div className="border border-gray-200 p-4 mb-4 space-y-3">
@@ -321,24 +352,24 @@ export function Forum() {
                       onChange={(e) => { setNewPostTitle(e.target.value); setError(""); }}
                       placeholder="Título del nuevo tema o debate..."
                       disabled={creatingPost}
-                      className="w-full border border-gray-300 p-3 focus:outline-none focus:border-[#007bff] text-sm font-semibold"
+                      className="w-full border border-gray-300 p-3 focus:outline-none focus:border-[#007bff] text-xs sm:text-sm  font-semibold"
                     />
                     <textarea
                       value={newPostContent}
                       onChange={(e) => { setNewPostContent(e.target.value); setError(""); }}
                       placeholder="¿Qué quieres debatir o consultar con la comunidad?"
                       disabled={creatingPost}
-                      className="w-full border border-gray-300 p-3 h-24 resize-none focus:outline-none focus:border-[#007bff] text-sm"
+                      className="w-full border border-gray-300 p-3 h-24 resize-none focus:outline-none focus:border-[#007bff] text-xs sm:text-sm "
                     />
                     <div className="flex gap-2 mt-3">
                       <button
                         onClick={handleCreatePost}
                         disabled={creatingPost}
-                        className="bg-[#007bff] text-white px-6 py-2 font-medium hover:bg-[#0056b3]"
+                        className="bg-[#007bff] text-white px-4 sm:px-6 py-2 font-medium hover:bg-[#0056b3] text-xs sm:text-sm"
                       >
                         {creatingPost ? "Publicando..." : "Publicar tema"}
                       </button>
-                      <button onClick={() => { setShowNewPost(false); setNewPostTitle(""); setNewPostContent(""); }} className="bg-gray-200 text-gray-800 px-6 py-2">
+                      <button onClick={() => { setShowNewPost(false); setNewPostTitle(""); setNewPostContent(""); }} className="bg-gray-200 text-gray-800 px-4 sm:px-6 py-2 text-xs sm:text-sm">
                         Cancelar
                       </button>
                     </div>
@@ -347,50 +378,54 @@ export function Forum() {
               </div>
 
               {loading ? (
-                <div className="border-2 border-gray-200 p-6 text-center text-gray-500">Cargando el foro...</div>
+                <div className="border-2 border-gray-200 p-6 text-center text-gray-500 text-sm">Cargando el foro...</div>
               ) : posts.length === 0 ? (
-                <div className="border-2 border-gray-200 p-6 text-center text-gray-500">No hay hilos abiertos actualmente.</div>
+                <div className="border-2 border-gray-200 p-6 text-center text-gray-500 text-sm">No hay hilos abiertos actualmente.</div>
               ) : (
                 posts.map((post: any) => (
-                  <div key={post.idPublicacion} className="border-2 border-gray-200 p-6 hover:border-gray-400 transition-all bg-white">
-                    <div className="flex gap-4">
-                      <div className="w-12 h-12 bg-[#007bff] text-white flex items-center justify-center flex-shrink-0 font-bold rounded">
+                  <div key={post.idPublicacion} className="border-2 border-gray-200 p-4 sm:p-6 hover:border-gray-400 transition-all bg-white overflow-hidden">
+                    <div className="flex gap-3 sm:gap-4">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#007bff] text-white flex items-center justify-center flex-shrink-0 font-bold rounded text-sm sm:text-base">
                         {post.autor?.nombre?.charAt(0).toUpperCase() || "U"}
                       </div>
 
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-gray-900">{post.autor?.nombre} {post.autor?.apellidos}</span>
-                          <span className="text-gray-400 text-sm">@{post.autor?.email?.split("@")[0]}</span>
-                          <span className="text-gray-400 text-sm">· {formatDate(post.fechaCreacion)}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1 text-xs sm:text-sm">
+                          <span className="font-semibold text-gray-900 break-all">{post.autor?.nombre} {post.autor?.apellidos}</span>
+                          <span className="text-gray-400 break-all">@{post.autor?.email?.split("@")[0]}</span>
+                          <span className="text-gray-400">· {formatDate(post.fechaCreacion)}</span>
                         </div>
 
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">{post.titulo}</h3>
-                        <p className="text-gray-800 mb-4">{post.contenido}</p>
+                        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 break-words">{post.titulo}</h3>
+                        <p className="text-gray-800 text-xs sm:text-sm mb-4 break-words whitespace-pre-line">{post.contenido}</p>
 
-                        <div className="flex gap-8 text-gray-500">
-                          <button 
+                        <div className="flex flex-wrap gap-4 sm:gap-8 text-gray-500 items-center text-xs sm:text-sm">
+                          <button
                             onClick={() => handleLikePost(post.idPublicacion)}
-                            className="flex items-center gap-2 hover:text-[#007bff]"
+                            className="flex items-center gap-1.5 hover:text-[#007bff]"
                           >
-                            <Heart className="w-5 h-5" /> <span>{post.likes || 0}</span>
-                          </button>
-                          <button 
-                            onClick={() => handleViewThread(post)}
-                            className="flex items-center gap-2 text-[#007bff] font-semibold hover:underline"
-                          >
-                            <MessageCircle className="w-5 h-5" /> 
-                            <span>Discutir / Responder</span>
-                          </button>
-                          <button className="flex items-center gap-2 hover:text-gray-700">
-                            <Share2 className="w-5 h-5" />
+                            <Heart className="w-4 h-4 sm:w-5 h-5" /> <span>{post.likes || 0}</span>
                           </button>
                           <button
-                            onClick={() => handleDeletePost(post.idPublicacion)}
-                            className="text-red-400 hover:text-red-600 text-sm ml-auto"
+                            onClick={() => handleViewThread(post)}
+                            className="flex items-center gap-1.5 text-[#007bff] font-semibold hover:underline"
                           >
-                            Eliminar
+                            <MessageCircle className="w-4 h-4 sm:w-5 h-5" />
+                            <span>Responder</span>
                           </button>
+                          <button className="flex items-center gap-1.5 hover:text-gray-700">
+                            <Share2 className="w-4 h-4 sm:w-5 h-5" />
+                          </button>
+
+                          {/* Control de borrado: Listado general */}
+                          {currentUserId && post.autor?.id === currentUserId && (
+                            <button
+                              onClick={() => handleDeletePost(post.idPublicacion)}
+                              className="text-red-400 hover:text-red-600 font-medium ml-auto"
+                            >
+                              Eliminar
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -401,14 +436,14 @@ export function Forum() {
           )}
         </div>
 
-        {/* COLUMNA LATERAL DERECHA */}
-        <div className="space-y-6">
-          <div className="border-2 border-gray-200 p-6 sticky top-6 bg-white">
+        {/* COLUMNA LATERAL WIKIPEDIA */}
+        <div className="space-y-6 min-w-0">
+          <div className="border-2 border-gray-200 p-4 sm:p-6 sticky top-6 bg-white overflow-hidden">
             <div className="flex items-center gap-2 text-gray-900 mb-3">
               <Sparkles className="w-5 h-5 text-[#007bff]" />
-              <h2 className="text-xl font-bold">Un día como hoy...</h2>
+              <h2 className="text-lg sm:text-xl font-bold">Un día como hoy...</h2>
             </div>
-            
+
             <p className="text-xs text-gray-400 mb-4 uppercase tracking-wider font-semibold">
               Tu dato aleatorio del día
             </p>
@@ -423,24 +458,24 @@ export function Forum() {
                 <div className="inline-block bg-blue-50 text-[#007bff] text-xs font-bold px-2.5 py-1 rounded">
                   Año {wikiData.year}
                 </div>
-                
-                <p className="text-sm text-gray-700 leading-relaxed font-medium">
+
+                <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-medium break-words">
                   {wikiData.text}
                 </p>
 
                 {wikiData.pages && wikiData.pages[0] && (
                   <div className="border-t pt-4 mt-2">
                     <p className="text-[11px] font-bold text-gray-400 uppercase mb-2">Artículo recomendado</p>
-                    <a 
-                      href={wikiData.pages[0].content_urls.desktop.page} 
-                      target="_blank" 
+                    <a
+                      href={wikiData.pages[0].content_urls.desktop.page}
+                      target="_blank"
                       rel="noopener noreferrer"
-                      className="block p-3 border border-gray-100 hover:border-[#007bff] hover:bg-gray-50 transition-colors group"
+                      className="block p-3 border border-gray-100 hover:border-[#007bff] hover:bg-gray-50 transition-colors group min-w-0"
                     >
-                      <div className="font-bold text-sm text-gray-900 group-hover:text-[#007bff] transition-colors line-clamp-1">
+                      <div className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-[#007bff] transition-colors line-clamp-1 break-words">
                         {wikiData.pages[0].titles.normalized}
                       </div>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-normal">
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-normal break-words">
                         {wikiData.pages[0].extract || "Haz clic para leer el artículo completo en Wikipedia."}
                       </p>
                       <span className="inline-block text-[11px] text-[#007bff] font-semibold mt-2 group-hover:underline">

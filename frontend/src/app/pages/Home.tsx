@@ -5,7 +5,7 @@ export function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       <div
-        className="relative h-screen flex items-center justify-center shrink-0"
+        className="relative h-[60vh] md:h-screen flex items-center justify-center shrink-0"
         style={{
           backgroundImage: 'url(https://images.unsplash.com/photo-1663162550938-60f70fab5d31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwyfHxzdHVkZW50cyUyMHN0dWR5aW5nJTIwdW5pdmVyc2l0eSUyMGNhbXB1cyUyMGZ1dHVyZSUyMGFjYWRlbWljJTIwc3VjY2Vzc3xlbnwxfHx8fDE3Nzk3OTAxNDl8MA&ixlib=rb-4.1.0&q=80&w=1080)',
           backgroundSize: 'cover',
@@ -14,13 +14,13 @@ export function Home() {
       >
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 text-center text-white px-6">
-          <h1 className="text-5xl mb-4 font-bold">Tu guía personalizada para el futuro académico</h1>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
+          <h1 className="text-3xl md:text-5xl mb-4 font-bold">Tu guía personalizada para el futuro académico</h1>
+          <p className="text-base md:text-xl mb-8 max-w-2xl mx-auto">
             Descubre tu vocación, calcula tu nota y conecta con otros estudiantes.
           </p>
           <Link
             to="/cuestionario"
-            className="inline-block bg-[#007bff] text-white px-12 py-4 text-xl font-semibold hover:scale-105 hover:underline transition-all shadow-md"
+            className="inline-block bg-[#007bff] text-white px-6 md:px-12 py-3 md:py-4 text-lg md:text-xl font-semibold hover:scale-105 hover:underline transition-all shadow-md"
           >
             COMENZAR TEST
           </Link>
@@ -50,7 +50,7 @@ export function Home() {
                 <MapPin className="w-12 h-12 text-[#007bff] mb-5" />
                 <h3 className="text-xl font-bold mb-3 text-gray-800">Cercanía y Geolocalización</h3>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  Calculamos de forma métrica y matemática la distancia real en kilómetros desde tu ubicación hasta cada campus facultativo, ayudándote a evaluar los factores de transporte y residencia.
+                  Calculamos la distancia real en kilómetros desde tu ubicación hasta cada campus facultativo, ayudándote a evaluar los factores de transporte y residencia.
                 </p>
               </div>
             </div>

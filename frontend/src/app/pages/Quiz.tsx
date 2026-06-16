@@ -109,15 +109,15 @@ export function Quiz() {
   };
 
   return (
-    <div className="min-h-screen bg-white py-20 px-6">
+    <div className="min-h-screen bg-white py-12 md:py-20 px-4 md:px-6">
       <div className="max-w-3xl mx-auto">
         {showResults ? (
-          <div className="border-2 border-[#007bff] p-12">
-            <h1 className="text-3xl mb-6 text-center">Resultados del Test Vocacional</h1>
+          <div className="border-2 border-[#007bff] p-8 md:p-12">
+            <h1 className="text-2xl md:text-3xl mb-6 text-center">Resultados del Test Vocacional</h1>
 
             <div className="mb-8">
-              <h2 className="text-2xl text-[#007bff] mb-4">{getRecommendation().title}</h2>
-              <p className="text-lg mb-4">{getRecommendation().description}</p>
+              <h2 className="text-xl md:text-2xl text-[#007bff] mb-4">{getRecommendation().title}</h2>
+              <p className="text-base md:text-lg mb-4">{getRecommendation().description}</p>
 
               {hasTie() && (
                 <p className="text-xs italic text-gray-500 mb-6 bg-blue-50 p-3 border-l-4 border-[#007bff]">
@@ -139,7 +139,7 @@ export function Quiz() {
                 ) : (
                   <div className="relative">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      
+
                       {isLoggedIn ? (
                         recomendacionesBBDD.slice(0, 3).map((titulacion: any) => (
                           <div key={titulacion.idTitulacion} className="bg-white border-2 border-gray-100 hover:border-[#007bff] p-5 shadow-sm flex flex-col justify-between min-h-[140px] transition-all duration-300">
@@ -151,7 +151,9 @@ export function Quiz() {
                             </div>
                             <div className="border-t pt-2 text-xs text-gray-500 flex justify-between items-center">
                               <span>Nota de Corte:</span>
-                              <strong className="text-gray-950 text-sm">{titulacion.notaCorte || "No requiere"}</strong>
+                              <strong className="text-gray-950 text-sm">
+                                {titulacion.notaCorte !== null && titulacion.notaCorte !== undefined ? titulacion.notaCorte : "5.00"}
+                              </strong>
                             </div>
                           </div>
                         ))
@@ -159,14 +161,16 @@ export function Quiz() {
                         <>
                           <div className="bg-white border-2 border-gray-100 p-5 shadow-sm flex flex-col justify-between min-h-[140px]">
                             <div>
-                              <h4 className="font-bold text-gray-900 text-base mb-2">{recomendacionesBBDD[0].nombre}</h4>
+                              <h4 className="font-bold text-gray-900 text-base mb-2">{recomendacionesBBDD[0]?.nombre}</h4>
                               <span className="inline-block bg-blue-50 text-[#007bff] text-xs px-2.5 py-1 font-semibold rounded mb-3">
-                                {recomendacionesBBDD[0].tipo}
+                                {recomendacionesBBDD[0]?.tipo}
                               </span>
                             </div>
                             <div className="border-t pt-2 text-xs text-gray-500 flex justify-between items-center">
                               <span>Nota de Corte:</span>
-                              <strong className="text-gray-950 text-sm">{recomendacionesBBDD[0].notaCorte || "No requiere"}</strong>
+                              <strong className="text-gray-950 text-sm">
+                                {recomendacionesBBDD[0]?.notaCorte !== null && recomendacionesBBDD[0]?.notaCorte !== undefined ? recomendacionesBBDD[0].notaCorte : "5.00"}
+                              </strong>
                             </div>
                           </div>
 
@@ -211,10 +215,23 @@ export function Quiz() {
                           </p>
                           <button
                             onClick={() => navigate("/registro")}
-                            className="w-full bg-[#007bff] text-white text-xs py-2.5 font-semibold hover:bg-[#0056b3] transition-colors shadow-sm tracking-wide uppercase"
+                            className="w-full bg-[#007bff] text-white text-xs py-2.5 font-semibold hover:bg-[#0056b3] transition-colors shadow-sm tracking-wide uppercase mb-3"
                           >
                             Registrarse y ver todo
                           </button>
+
+                          <p className="text-[11px] text-gray-600 border-t pt-2">
+                            ¿Ya tienes una cuenta?{" "}
+                            <button
+                              onClick={() => {
+                                navigate("/");
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              className="text-[#007bff] font-bold hover:underline bg-transparent border-none p-0 cursor-pointer"
+                            >
+                              Inicia sesión aquí
+                            </button>
+                          </p>
                         </div>
                       </div>
                     )}
@@ -250,18 +267,17 @@ export function Quiz() {
               <span className="text-gray-600">
                 Pregunta {currentQuestion + 1} de {questions.length}
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap items-center">
                 {questions.map((_, index) => (
                   <div
                     key={index}
-                    className={`w-8 h-2 transition-all duration-300 ${index <= currentQuestion ? "bg-[#007bff]" : "bg-gray-200"
-                      }`}
+                    className={`h-2 transition-all duration-300 ${index <= currentQuestion ? "bg-[#007bff]" : "bg-gray-200"} md:w-8 md:flex-none flex-1 min-w-[8px]`}
                   />
                 ))}
               </div>
             </div>
 
-            <h1 className="text-3xl mb-8">{questions[currentQuestion].question}</h1>
+            <h1 className="text-2xl md:text-3xl mb-8">{questions[currentQuestion].question}</h1>
 
             <div className="space-y-4 mb-8">
               {questions[currentQuestion].options.map((option) => (
@@ -270,8 +286,8 @@ export function Quiz() {
                   onClick={() => handleSelectAnswer(option.id)}
                   disabled={isTransitioning}
                   className={`w-full text-left p-6 border-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] ${selectedAnswers[questions[currentQuestion].id] === option.id
-                      ? "border-[#007bff] bg-blue-50/70 shadow-sm font-semibold"
-                      : "border-gray-200 hover:border-[#007bff] hover:bg-blue-50/20"
+                    ? "border-[#007bff] bg-blue-50/70 shadow-sm font-semibold"
+                    : "border-gray-200 hover:border-[#007bff] hover:bg-blue-50/20"
                     }`}
                 >
                   <span className="font-semibold mr-3">{option.id}.</span>

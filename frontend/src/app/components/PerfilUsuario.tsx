@@ -35,7 +35,7 @@ export default function PerfilUsuario({ usuario, onNavigate, onUpdateSuccess }: 
     if (!usuario.id) return alert("Usuario sin ID válido");
     try {
       const updated = await usuariosAPI.update(usuario.id, formData, archivoSeleccionado || undefined);
-      alert("¡Perfil actualizado con éxito!");
+      alert("Perfil actualizado correctamente");
       setIsEditing(false);
       setArchivoSeleccionado(null);
       if (onUpdateSuccess) onUpdateSuccess(updated);
@@ -65,9 +65,18 @@ export default function PerfilUsuario({ usuario, onNavigate, onUpdateSuccess }: 
             )}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              {formData.nombre || "Usuario"} {formData.apellidos || ""}
-            </h2>
+            <div className="flex flex-col sm:flex-row items-center gap-2">
+              <h2 className="text-xl font-bold text-gray-900">
+                {formData.nombre || "Usuario"} {formData.apellidos || ""}
+              </h2>
+              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+                formData.rol === "ADMIN" 
+                  ? "bg-red-50 text-red-600 border-red-200" 
+                  : "bg-blue-50 text-[#007bff] border-blue-200"
+              }`}>
+                {formData.rol || "USER"}
+              </span>
+            </div>
             <p className="text-sm text-gray-500">{formData.email}</p>
           </div>
         </div>
@@ -89,7 +98,7 @@ export default function PerfilUsuario({ usuario, onNavigate, onUpdateSuccess }: 
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#007bff] mb-4 pb-1 border-b border-gray-100">
               Datos Personales
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="bg-gray-50 p-3 border border-gray-100">
                 <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Provincia</label>
                 <p className="text-sm font-medium text-gray-800">{formData.provincia || "No especificada"}</p>
@@ -99,8 +108,14 @@ export default function PerfilUsuario({ usuario, onNavigate, onUpdateSuccess }: 
                 <p className="text-sm font-medium text-gray-800">{formData.fechaNac || "No especificada"}</p>
               </div>
               <div className="bg-gray-50 p-3 border border-gray-100">
-                <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Edad </label>
+                <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Edad</label>
                 <p className="text-sm font-medium text-gray-800">{calcularEdad(formData.fechaNac)}</p>
+              </div>
+              <div className="bg-gray-50 p-3 border border-gray-100">
+                <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Tipo de Cuenta</label>
+                <p className={`text-sm font-bold ${formData.rol === "ADMIN" ? "text-red-600" : "text-gray-800"}`}>
+                  {formData.rol === "ADMIN" ? "Administrador" : "Usuario Estándar"}
+                </p>
               </div>
             </div>
           </section>
@@ -173,18 +188,29 @@ export default function PerfilUsuario({ usuario, onNavigate, onUpdateSuccess }: 
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Foto de Perfil</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  setArchivoSeleccionado(e.target.files[0]);
-                }
-              }}
-              className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-xs file:font-bold file:uppercase file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Foto de Perfil</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setArchivoSeleccionado(e.target.files[0]);
+                  }
+                }}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-xs file:font-bold file:uppercase file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">Rol del Sistema (No editable)</label>
+              <input
+                type="text"
+                disabled
+                value={formData.rol === "ADMIN" ? "Administrador" : "Usuario Estándar"}
+                className="w-full px-3 py-2 border border-gray-200 text-sm bg-gray-50 text-gray-400 cursor-not-allowed outline-none"
+              />
+            </div>
           </div>
 
           <div>
