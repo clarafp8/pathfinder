@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usuariosAPI, Usuario } from "../services/apiClient";
 import { provinciasList } from "../services/provincias";
 import { useNavigate } from "react-router";
@@ -23,9 +23,19 @@ export default function Registro({ onSuccess }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target as HTMLInputElement;
-    setFormData((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+  // Tipado genérico correcto para soportar Inputs, Selects y Checkboxes de forma segura
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const target = e.target;
+    const name = target.name;
+    const value = target.value;
+
+    // Evaluamos de forma segura si el elemento es un checkbox
+    const checked = target instanceof HTMLInputElement && target.type === "checkbox" ? target.checked : false;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: target instanceof HTMLInputElement && target.type === "checkbox" ? checked : value
+    }));
     setErrors({});
   };
 
@@ -43,7 +53,7 @@ export default function Registro({ onSuccess }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    setLoading(true);
+    loadingBox(true);
     try {
       const nuevo = {
         nombre: formData.nombre,
@@ -82,71 +92,76 @@ export default function Registro({ onSuccess }: Props) {
         confirmButtonColor: "#007bff",
       });
     } finally {
-      setLoading(false);
+      loadingBox(false);
     }
+  };
+
+  const loadingBox = (val: boolean) => {
+    setLoading(val);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700">Nombre</label>
-        <input name="nombre" value={formData.nombre} onChange={handleChange} className="w-full border px-2 py-1 focus:outline-none focus:border-[#007bff]" />
-        {errors.nombre && <div className="text-red-600 text-sm">{errors.nombre}</div>}
+        <input name="nombre" value={formData.nombre} onChange={handleChange} className="w-full border px-3 py-2 focus:outline-none focus:border-[#007bff] text-sm" />
+        {errors.nombre && <div className="text-red-600 text-sm mt-1">{errors.nombre}</div>}
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Apellidos</label>
-        <input name="apellidos" value={formData.apellidos} onChange={handleChange} className="w-full border px-2 py-1 focus:outline-none focus:border-[#007bff]" />
+        <input name="apellidos" value={formData.apellidos} onChange={handleChange} className="w-full border px-3 py-2 focus:outline-none focus:border-[#007bff] text-sm" />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Email</label>
-        <input name="email" type="email" value={formData.email} onChange={handleChange} className="w-full border px-2 py-1 focus:outline-none focus:border-[#007bff]" />
-        {errors.email && <div className="text-red-600 text-sm">{errors.email}</div>}
+        <input name="email" type="email" value={formData.email} onChange={handleChange} className="w-full border px-3 py-2 focus:outline-none focus:border-[#007bff] text-sm" />
+        {errors.email && <div className="text-red-600 text-sm mt-1">{errors.email}</div>}
       </div>
 
+      {/* 🚀 SOLUCIÓN COMPATIBLE MÓVIL: Cambiado Datalist por Select Nativo */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">Provincia</label>
-        <input
+        <label className="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
+        <select
           name="provincia"
-          list="provincias-api-list"
           value={formData.provincia}
           onChange={handleChange}
-          className="w-full border px-2 py-1 focus:outline-none focus:border-[#007bff]"
-          placeholder="Provincia..."
-        />
-        <datalist id="provincias-api-list">
+          className="w-full border px-3 py-2 focus:outline-none focus:border-[#007bff] bg-white text-sm h-[40px]"
+        >
+          <option value="">Selecciona tu provincia...</option>
           {provinciasList.map((prov) => (
-            <option key={prov.id} value={prov.nm} />
+            <option key={prov.id} value={prov.nm}>
+              {prov.nm}
+            </option>
           ))}
-        </datalist>
+        </select>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Fecha de Nacimiento</label>
-        <input name="fechaNac" type="date" value={formData.fechaNac} onChange={handleChange} className="w-full border px-2 py-1 focus:outline-none focus:border-[#007bff]" />
+        <input name="fechaNac" type="date" value={formData.fechaNac} onChange={handleChange} className="w-full border px-3 py-2 focus:outline-none focus:border-[#007bff] text-sm" />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Contraseña</label>
-        <input name="password" type="password" value={formData.password} onChange={handleChange} className="w-full border px-2 py-1 focus:outline-none focus:border-[#007bff]" />
-        {errors.password && <div className="text-red-600 text-sm">{errors.password}</div>}
+        <input name="password" type="password" value={formData.password} onChange={handleChange} className="w-full border px-3 py-2 focus:outline-none focus:border-[#007bff] text-sm" />
+        {errors.password && <div className="text-red-600 text-sm mt-1">{errors.password}</div>}
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Confirmar Contraseña</label>
-        <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} className="w-full border px-2 py-1 focus:outline-none focus:border-[#007bff]" />
-        {errors.confirmPassword && <div className="text-red-600 text-sm">{errors.confirmPassword}</div>}
+        <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} className="w-full border px-3 py-2 focus:outline-none focus:border-[#007bff] text-sm" />
+        {errors.confirmPassword && <div className="text-red-600 text-sm mt-1">{errors.confirmPassword}</div>}
       </div>
 
-      <label className="flex items-center gap-2 pt-2">
-        <input name="terminos" type="checkbox" checked={formData.terminos} onChange={handleChange} />
-        <span className="text-sm text-gray-600">Acepto los términos y condiciones</span>
+      <label className="flex items-center gap-2 pt-2 cursor-pointer">
+        <input name="terminos" type="checkbox" checked={formData.terminos} onChange={handleChange} className="w-4 h-4 text-[#007bff]" />
+        <span className="text-sm text-gray-600 select-none">Acepto los términos y condiciones</span>
       </label>
-      {errors.terminos && <div className="text-red-600 text-sm">{errors.terminos}</div>}
+      {errors.terminos && <div className="text-red-600 text-sm mt-1">{errors.terminos}</div>}
 
       <div className="pt-2">
-        <button type="submit" disabled={loading} className="w-full bg-[#007bff] text-white py-2 font-medium hover:bg-[#0056b3] transition-colors disabled:bg-gray-400">
+        <button type="submit" disabled={loading} className="w-full bg-[#007bff] text-white py-2.5 font-bold uppercase tracking-wider text-sm hover:bg-[#0056b3] transition-colors disabled:bg-gray-400 shadow-sm">
           {loading ? 'Registrando...' : 'Registrarse'}
         </button>
       </div>
@@ -159,9 +174,9 @@ export default function Registro({ onSuccess }: Props) {
             navigate("/");
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
-          className="text-[#007bff] font-semibold hover:underline bg-transparent border-none p-0 cursor-pointer"
+          className="text-[#007bff] font-bold hover:underline bg-transparent border-none p-0 cursor-pointer"
         >
-          Inicia sesión
+          Inicia sesión aquí
         </button>
       </p>
     </form>

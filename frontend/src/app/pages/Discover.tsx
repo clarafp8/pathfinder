@@ -338,21 +338,40 @@ export function Discover() {
                                 </span>
                               )}
 
-                              {/* EXTERNAL WEB ACTION LINK LINKING TO THE ACADEMIC INSTITUTION */}
+                              {/* EXTERNAL WEB ACTION LINK */}
                               <a
                                 href={obtenerLinkUniversidad(centro.nombre)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs border border-[#007bff] text-[#007bff] px-3 py-1 font-medium hover:bg-[#007bff] hover:text-white transition-colors"
                               >
-                                Visitar web ↗
+                                Visitar centro ↗
                               </a>
                             </div>
                           </div>
                         );
                       })
                     ) : (
-                      <p className="text-xs text-gray-400 italic">No hay centros registrados para esta titulación.</p>
+                      /*LÓGICA SI NO HAY CENTROS / CENTROS DE FP */
+                      <div className="border-2 border-dashed border-gray-200 p-6 text-center space-y-4 bg-gray-50/50">
+                        <p className="text-xs text-gray-400 italic">
+                          No hay centros específicos registrados en la base de datos para esta titulación.
+                        </p>
+
+                        {(selectedTitulacion.tipo?.toLowerCase().includes("medio") ||
+                          selectedTitulacion.tipo?.toLowerCase().includes("superior")) && (
+                            <div className="pt-2">
+                              <a
+                                href="https://www.juntadeandalucia.es/educacion/portals/web/formacion-profesional-andaluza"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-xs bg-white border border-[#007bff] text-[#007bff] px-4 py-2.5 font-bold hover:bg-[#007bff] hover:text-white transition-all shadow-sm"
+                              >
+                                🔍 Buscar centros en el Portal de FP Andaluza ↗
+                              </a>
+                            </div>
+                          )}
+                      </div>
                     )}
                   </div>
                 </div>
