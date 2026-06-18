@@ -2,7 +2,11 @@ package com.proyecto.proyecto.entidades;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,6 +24,7 @@ public class Publicacion {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_publicacion")
+    @JsonProperty("idPublicacion") 
     private Integer idPublicacion;
 
     private String titulo;
@@ -37,6 +42,7 @@ public class Publicacion {
     @ManyToOne
     @JoinColumn(name = "id_publicacion_padre")
     @JsonIgnoreProperties({"padre", "autor"})
+    @OnDelete(action = OnDeleteAction.CASCADE) 
     private Publicacion padre;
 
     @Column(name = "likes")

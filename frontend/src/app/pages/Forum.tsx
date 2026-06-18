@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Heart, MessageCircle, Share2, User, ArrowLeft, Send, Sparkles } from "lucide-react";
+import { Heart, MessageCircle, Share2, User, ArrowLeft, Send, Sparkles, Trash2 } from "lucide-react"; 
 import { Link } from "react-router";
 import { publicacionesAPI } from "../services/apiClient";
+import Swal from "sweetalert2"; 
 
 export function Forum() {
   const [posts, setPosts] = useState<any[]>([]);
@@ -20,12 +21,16 @@ export function Forum() {
   const [wikiData, setWikiData] = useState<any>(null);
   const [loadingWiki, setLoadingWiki] = useState(true);
 
-  // Extraemos el ID del usuario actual logueado en la app
+  // Extrar los datos completos del usuario actual logueado en la app
   const usuarioGuardado = localStorage.getItem("usuario");
   let currentUserId: number | null = null;
+  let currentUserRol: string | null = null; // Rol para saber si es ADMIN o USER
+
   if (usuarioGuardado) {
     try {
-      currentUserId = JSON.parse(usuarioGuardado).id;
+      const userObj = JSON.parse(usuarioGuardado);
+      currentUserId = userObj.id;
+      currentUserRol = userObj.rol;
     } catch (e) {
       console.error(e);
     }
@@ -35,7 +40,6 @@ export function Forum() {
     try {
       const data = await publicacionesAPI.getMainTopics();
 
-      // 🚀 ORDENACIÓN BLINDADA PARA TYPESCRIPT: 
       const sortedPosts = [...data].sort((a, b) => {
         const dateB = new Date(b.fechaCreacion || Date.now()).getTime();
         const dateA = new Date(a.fechaCreacion || Date.now()).getTime();
@@ -49,6 +53,10 @@ export function Forum() {
   };
 
   const loadReplies = async (postId: number) => {
+    forLoadReplies(postId);
+  };
+
+  const forLoadReplies = async (postId: number) => {
     setLoadingReplies(true);
     try {
       const data = await publicacionesAPI.getReplies(postId);
@@ -60,7 +68,6 @@ export function Forum() {
     }
   };
 
-  // API de Wikipedia dinámico de "Un día como hoy"
   useEffect(() => {
     const fetchWikipediaData = async () => {
       try {
@@ -94,7 +101,7 @@ export function Forum() {
     const intervalo = setInterval(() => {
       loadPosts();
       if (selectedPost) {
-        loadReplies(selectedPost.idPublicacion);
+        forLoadReplies(selectedPost.idPublicacion);
       }
     }, 10000);
 
@@ -103,7 +110,7 @@ export function Forum() {
 
   const handleViewThread = (post: any) => {
     setSelectedPost(post);
-    loadReplies(post.idPublicacion);
+    forLoadReplies(post.idPublicacion);
   };
 
   const handleCreatePost = async () => {
@@ -181,8 +188,27 @@ export function Forum() {
     }
   };
 
+  //FUNCIÓN DE ADMINISTRACIÓN DEL FORO POR PARTE DEL ADMIN
   const handleDeletePost = async (publicacionId: number | undefined, isReply = false) => {
     if (!publicacionId) return;
+
+    const textoConfirmacion = currentUserRol === "ADMIN"
+      ? "Como administrador, tienes permisos de moderación para eliminar esta publicación."
+      : "Esta acción eliminará de forma permanente la publicación del foro.";
+
+    const result = await Swal.fire({
+      title: "¿Estás seguro?",
+      text: textoConfirmacion,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar"
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       await publicacionesAPI.delete(publicacionId);
       if (isReply) {
@@ -193,8 +219,10 @@ export function Forum() {
           setSelectedPost(null);
         }
       }
+      Swal.fire("¡Eliminado!", "La publicación ha sido borrada.", "success");
     } catch (err) {
       console.error(err);
+      Swal.fire("Error", "No se pudo eliminar la publicación del servidor.", "error");
     }
   };
 
@@ -232,25 +260,26 @@ export function Forum() {
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-900 text-white flex items-center justify-center flex-shrink-0 font-bold rounded text-sm sm:text-base">
                     {selectedPost.autor?.nombre?.charAt(0).toUpperCase() || "U"}
                   </div>
-                  {/* 🚀 min-w-0 permite que este bloque flexible se encoja correctamente en pantallas pequeñas */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-1">
                       <div className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm">
                         <span className="font-semibold text-gray-900 break-all">{selectedPost.autor?.nombre} {selectedPost.autor?.apellidos}</span>
                         <span className="text-gray-500">· {formatDate(selectedPost.fechaCreacion)}</span>
+                        {/* Etiqueta distintiva si el autor de este post es admin */}
+                        {selectedPost.autor?.rol === "ADMIN" && <span className="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.2 font-black uppercase rounded">Admin</span>}
                       </div>
 
-                      {/* Control de borrado: Post Detallado */}
-                      {currentUserId && selectedPost.autor?.id === currentUserId && (
+                      {/* Botón de borrar si eres el que publica O si eres ADMIN */}
+                      {currentUserId && (selectedPost.autor?.id === currentUserId || currentUserRol === "ADMIN") && (
                         <button
                           onClick={() => handleDeletePost(selectedPost.idPublicacion)}
-                          className="text-red-400 hover:text-red-600 text-xs font-semibold self-start sm:self-auto"
+                          className="text-red-500 hover:text-red-700 text-xs font-bold flex items-center gap-1 self-start sm:self-auto bg-red-50 px-2 py-1 border border-red-200"
                         >
-                          Eliminar debate
+                          <Trash2 className="w-3.5 h-3.5" />
+                          {currentUserRol === "ADMIN" && selectedPost.autor?.id !== currentUserId ? "Moderar debate" : "Eliminar debate"}
                         </button>
                       )}
                     </div>
-                    {/* 🚀 break-words divide cadenas largas para que no se salgan del layout */}
                     <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 break-words">{selectedPost.titulo}</h2>
                     <p className="text-gray-900 text-sm sm:text-lg mb-4 break-words whitespace-pre-line">{selectedPost.contenido}</p>
                   </div>
@@ -273,25 +302,28 @@ export function Forum() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1 text-xs sm:text-sm">
-                            <span className="font-semibold text-gray-900 break-all">{reply.autor?.nombre} {reply.autor?.apellidos}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-gray-900 break-all">{reply.autor?.nombre} {reply.autor?.apellidos}</span>
+                              {reply.autor?.rol === "ADMIN" && <span className="bg-red-100 text-red-700 text-[9px] px-1 py-0.2 font-bold uppercase rounded">Admin</span>}
+                            </div>
                             <span className="text-gray-400">· {formatDate(reply.fechaCreacion)}</span>
                           </div>
                           <p className="text-gray-800 text-xs sm:text-sm break-words whitespace-pre-line">{reply.contenido}</p>
-                          <div className="mt-2 flex justify-end gap-4 items-center">
+                          <div className="mt-2 flex justify-between items-center">
                             <button
                               onClick={() => handleLikePost(reply.idPublicacion)}
-                              className="text-xs text-gray-500 hover:text-[#007bff] flex items-center gap-1"
+                              className="text-xs text-gray-500 hover:text-[#007bff] flex items-center gap-1.5"
                             >
                               <Heart className="w-3.5 h-3.5" /> <span>{reply.likes || 0}</span>
                             </button>
 
-                            {/* Control de borrado: Respuestas */}
-                            {currentUserId && reply.autor?.id === currentUserId && (
+                            {/* El admin puede borrar cualquier comentario del foro */}
+                            {currentUserId && (reply.autor?.id === currentUserId || currentUserRol === "ADMIN") && (
                               <button
                                 onClick={() => handleDeletePost(reply.idPublicacion, true)}
-                                className="text-xs text-red-400 hover:text-red-600 font-medium"
+                                className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-0.5 hover:underline"
                               >
-                                Eliminar
+                                <Trash2 className="w-3 h-3" /> Borrar
                               </button>
                             )}
                           </div>
@@ -390,14 +422,31 @@ export function Forum() {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1 text-xs sm:text-sm">
-                          <span className="font-semibold text-gray-900 break-all">{post.autor?.nombre} {post.autor?.apellidos}</span>
-                          <span className="text-gray-400 break-all">@{post.autor?.email?.split("@")[0]}</span>
-                          <span className="text-gray-400">· {formatDate(post.fechaCreacion)}</span>
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-1 text-xs sm:text-sm">
+                          <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                            <span className="font-semibold text-gray-900 break-all">{post.autor?.nombre} {post.autor?.apellidos}</span>
+                            <span className="text-gray-400 break-all">@{post.autor?.email?.split("@")[0]}</span>
+                            <span className="text-gray-400">· {formatDate(post.fechaCreacion)}</span>
+                            {post.autor?.rol === "ADMIN" && <span className="bg-red-100 text-red-700 text-[10px] px-1.5 py-0.2 font-black uppercase rounded">Admin</span>}
+                          </div>
+
+                          {/* Botón perimetral directo de borrado para el admin en el listado general */}
+                          {currentUserId && (post.autor?.id === currentUserId || currentUserRol === "ADMIN") && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation(); // Evita que al pulsar se abra el hilo por error
+                                handleDeletePost(post.idPublicacion);
+                              }}
+                              className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
+                              title="Eliminar debate"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
 
                         <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 break-words">{post.titulo}</h3>
-                        <p className="text-gray-800 text-xs sm:text-sm mb-4 break-words whitespace-pre-line">{post.contenido}</p>
+                        <p className="text-gray-800 text-xs sm:text-sm mb-4 break-words line-clamp-3 whitespace-pre-line">{post.contenido}</p>
 
                         <div className="flex flex-wrap gap-4 sm:gap-8 text-gray-500 items-center text-xs sm:text-sm">
                           <button
@@ -411,21 +460,11 @@ export function Forum() {
                             className="flex items-center gap-1.5 text-[#007bff] font-semibold hover:underline"
                           >
                             <MessageCircle className="w-4 h-4 sm:w-5 h-5" />
-                            <span>Responder</span>
+                            <span>Responder ({post.numRespuestas || 0})</span>
                           </button>
                           <button className="flex items-center gap-1.5 hover:text-gray-700">
                             <Share2 className="w-4 h-4 sm:w-5 h-5" />
                           </button>
-
-                          {/* Control de borrado: Listado general */}
-                          {currentUserId && post.autor?.id === currentUserId && (
-                            <button
-                              onClick={() => handleDeletePost(post.idPublicacion)}
-                              className="text-red-400 hover:text-red-600 font-medium ml-auto"
-                            >
-                              Eliminar
-                            </button>
-                          )}
                         </div>
                       </div>
                     </div>
